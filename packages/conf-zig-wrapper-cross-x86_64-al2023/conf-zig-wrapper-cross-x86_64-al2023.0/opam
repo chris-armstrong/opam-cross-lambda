@@ -1,7 +1,7 @@
 opam-version: "2.0"
 maintainer: "hello@chrisarmstrong.dev"
 build: [
-  ["bash" "build.sh" "x86_64-al2023"]
+  ["bash" "build.sh" "cross-x86_64-al2023"]
 ]
 install: [
   ["bash" "install.sh" "%{prefix}%" "x86_64-linux-gnu.2.34"]
