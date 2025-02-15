@@ -2,7 +2,13 @@
 
 PREFIX=$1
 HOST_TARGET=$2
-ZIG=$3
+ZIG=$(which zig)
+
+if [ -z "${ZIG}" ]
+then
+  echo "Zig not found in path!"
+  exit 1
+fi
 
 case "$(uname -s)" in
     Linux*)     machine=Linux;;

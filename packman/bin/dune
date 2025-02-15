@@ -1,1 +1,3 @@
-(executable (name packman) (libraries opam-solver))
+(executable
+ (name packman)
+ (libraries opam-solver opam-format))

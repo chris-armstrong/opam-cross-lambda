@@ -83,6 +83,6 @@ jobs:
           eval $(opam env)
           { echo "#include <stdio.h>"; echo "int main() { return 0; }"; } > test.c
           export PATH=$PATH:$OPAM_SWITCH_PREFIX/bin
-          aarch64-linux-gnu.2.34-target-cc -o test test.c
+          x86_64-linux-gnu.2.34-target-cc -o test test.c
       - name: install x86_64 compiler
         run: opam install ocaml-cross-x86_64-al2023 --verbose 
