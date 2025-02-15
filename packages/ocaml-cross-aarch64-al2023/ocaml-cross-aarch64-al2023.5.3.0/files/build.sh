@@ -229,7 +229,7 @@ then
   echo "--- function sections disabled on host, disabling for target"
 fi
 
-if [ $(expr "$OCAML_TARGET" : "^x86_64-w64-") > 0 ]
+if [ $(expr "$OCAML_TARGET" : "^x86_64-w64-") -gt 0 ]
 then
   echo "--- x86_64-w64-* target means we need flexdll"
   EXTRA_CONFIG_OPTS="${EXTRA_CONFIG_OPTS} --with-flexdll=${FLEXDLL_PATH}"
