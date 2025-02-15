@@ -233,6 +233,8 @@ if [ $(expr "$OCAML_TARGET" : "^x86_64-w64-") > 0 ]
 then
   echo "--- x86_64-w64-* target means we need flexdll"
   EXTRA_CONFIG_OPTS="${EXTRA_CONFIG_OPTS} --with-flexdll=${FLEXDLL_PATH}"
+else
+  EXTRA_CONFIG_OPTS="${EXTRA_CONFIG_OPTS} --disable-flexdll"
 fi
 
 echo "--- transposing host compiler configuration"
