@@ -34,7 +34,7 @@ jobs:
       - name: add repository
         run: opam repo add cross .
       - name: configure and install zig wrapper
-        run: opam install conf-zig-wrapper
+        run: opam install conf-zig-wrapper-cross-aarch64-al2023
         env:
           ZIG_PATH: zig
       - name: validate zig works
@@ -73,7 +73,7 @@ jobs:
       - name: add repository
         run: opam repo add cross .
       - name: configure and install zig wrapper
-        run: opam install conf-zig-wrapper
+        run: opam install conf-zig-wrapper-cross-x86_64-al2023
         env:
           ZIG_PATH: zig
       - name: validate zig works

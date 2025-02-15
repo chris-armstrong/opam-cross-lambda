@@ -1,0 +1,10 @@
+opam-version: "2.0"
+maintainer: "hello@chrisarmstrong.dev"
+install: [
+  ["bash" "install.sh" "%{prefix}%" "aarch64-linux-gnu.2.34" "%{env:ZIG_PATH}%"]
+]
+extra-files: [
+  [ "install.sh" "sha256=fd2d8758f999bf8730f111169c8e46531d73a283e4b9e1c92425530c27e24dbc" ]
+]
+synopsis:
+  "Virtual package specifying ocaml-cross zig wrapper utilities configuration"
