@@ -4,10 +4,10 @@ build: [
   ["bash" "build.sh" "cross-aarch64-al2023"]
 ]
 install: [
-  ["bash" "install.sh" "%{prefix}%" "aarch64-linux-gnu.2.34"]
+  ["bash" "install.sh" "%{prefix}%" "aarch64-al2023" "aarch64-linux-gnu.2.34"]
 ]
 extra-files: [
-  [ "install.sh" "sha256=562a72ecb4022a5188cf3bd4b1e4a8515c51a13cdf51cb7b4555bddea25c480f" ]
+  [ "install.sh" "sha256=ce868d40fb02ddf5aaaa33dc4dda05bd987ab2181beac0ad9cf1e24781eab05d" ]
   [ "build.sh" "sha256=097c83837b6d88321e87ddde9587b375a6c4780cdaf6d5461e3fd00775486c04"]
 ]
 synopsis:

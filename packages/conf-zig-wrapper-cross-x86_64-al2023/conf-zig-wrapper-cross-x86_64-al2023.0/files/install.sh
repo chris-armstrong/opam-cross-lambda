@@ -1,7 +1,8 @@
 #!/bin/bash
 
 PREFIX=$1
-HOST_TARGET=$2
+CROSS_NAME=$2
+HOST_TARGET=$3
 ZIG=$(which zig)
 
 if [ -z "${ZIG}" ]
@@ -62,13 +63,18 @@ EOF
 # -- target C compiler wrapper scripts (these need to be added to the prefix straight away)
 mkdir -p "${PREFIX}/bin"
 
-zig_cc_wrapper="${PREFIX}/bin/$HOST_TARGET-target-cc"
+zig_cc_wrapper="${PREFIX}/bin/$CROSS_NAME-target-cc"
 make_wrapper "$zig_cc_wrapper" "${ZIG} cc -target ${HOST_TARGET}"
 make_windows_cmd_wrapper "$zig_cc_wrapper"
 
-zig_aspp_wrapper="${PREFIX}/bin/$HOST_TARGET-target-aspp"
+zig_aspp_wrapper="${PREFIX}/bin/$CROSS_NAME-target-aspp"
 make_wrapper "$zig_aspp_wrapper" "${ZIG} cc -target ${HOST_TARGET} -c"
 make_windows_cmd_wrapper "$zig_aspp_wrapper"
-zig_ar_wrapper="${PREFIX}/bin/$HOST_TARGET-target-ar"
+
+zig_ar_wrapper="${PREFIX}/bin/$CROSS_NAME-target-ar"
 make_wrapper "$zig_ar_wrapper" "${ZIG} ar"
+make_windows_cmd_wrapper "$zig_ar_wrapper"
+
+zig_ar_wrapper="${PREFIX}/bin/$CROSS_NAME-target-ranlib"
+make_wrapper "$zig_ar_wrapper" "${ZIG} ranlib -target ${HOST_TARGET}"
 make_windows_cmd_wrapper "$zig_ar_wrapper"
