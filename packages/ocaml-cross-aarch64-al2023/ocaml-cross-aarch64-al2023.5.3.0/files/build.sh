@@ -392,5 +392,5 @@ make_target compilerlibs/ocamlcommon.cmxa \
             # compilerlibs/ocamltoplevel.cmxa
 if [ $(expr "$OCAML_VERSION" : '^5\.') -gt 0 ]
 then
-  make_target -C otherlibs all
+  make_target -C otherlibs all allopt
 fi

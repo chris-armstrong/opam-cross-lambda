@@ -229,10 +229,12 @@ then
   echo "--- function sections disabled on host, disabling for target"
 fi
 
-if [ $(expr "$OCAML_TARGET" : "^x86_64-w64-") > 0 ]
+if [ $(expr "$OCAML_TARGET" : "^x86_64-w64-") -gt 0 ]
 then
   echo "--- x86_64-w64-* target means we need flexdll"
   EXTRA_CONFIG_OPTS="${EXTRA_CONFIG_OPTS} --with-flexdll=${FLEXDLL_PATH}"
+else
+  EXTRA_CONFIG_OPTS="${EXTRA_CONFIG_OPTS} --disable-flexdll"
 fi
 
 echo "--- transposing host compiler configuration"
@@ -269,11 +271,13 @@ ln_use="ln -s "
 echo "configuring with --host=${OCAML_TARGET} --prefix=${prefix_native} ${EXTRA_CONFIG_OPTS}"
 export "PATH=$PREFIX/bin:$PATH"
 # FIXME: patch configure to ignore flexlink when the host triplet is not Cygwin/MingW 
+zig_native="$ZIG"
+[ "$machine" = "Cygwin" ] && zig_native=$(cygpath -m "$ZIG")
 ./configure --host="${OCAML_TARGET}" --prefix="$prefix_native" --disable-ocamldoc --disable-stdlib-manpages --disable-ocamltest --disable-ocamldebug \
   ${EXTRA_CONFIG_OPTS} \
   -C "CC=${ZIG_TARGET}-target-cc" \
   "AR=${ZIG_TARGET}-target-ar" \
-  "RANLIB=${ZIG} ranlib -target ${ZIG_TARGET}" \
+  "RANLIB=${zig_native} ranlib -target ${ZIG_TARGET}" \
   "ASPP=${ZIG_TARGET}-target-aspp" \
   "MIN64CC=${ZIG_TARGET}-target-cc" \
   "PARTIALLD=${ZIG_TARGET}-target-cc -r " \
@@ -282,7 +286,7 @@ export "PATH=$PREFIX/bin:$PATH"
 
 # Set up sak compiler
 cp Makefile.config Makefile.config.bak
-echo "SAK_CC=${ZIG} cc" >> Makefile.config # fuck it lets just use zig because x86_64-w64-mingw32-gcc wants to be broken on Windows
+echo "SAK_CC=${zig_native} cc" >> Makefile.config # fuck it lets just use zig because x86_64-w64-mingw32-gcc wants to be broken on Windows
 # shellcheck disable=SC2016
 echo 'SAK_CFLAGS=$(OC_CFLAGS) $(OC_CPPFLAGS)' >> Makefile.config
 if [ "$windows_unicode" = "true" ]
@@ -388,5 +392,5 @@ make_target compilerlibs/ocamlcommon.cmxa \
             # compilerlibs/ocamltoplevel.cmxa
 if [ $(expr "$OCAML_VERSION" : '^5\.') -gt 0 ]
 then
-  make_target othertools
+  make_target -C otherlibs all allopt
 fi
