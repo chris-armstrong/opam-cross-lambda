@@ -69,6 +69,11 @@ make_windows_cmd_wrapper "$zig_cc_wrapper"
 zig_aspp_wrapper="${PREFIX}/bin/$HOST_TARGET-target-aspp"
 make_wrapper "$zig_aspp_wrapper" "${ZIG} cc -target ${HOST_TARGET} -c"
 make_windows_cmd_wrapper "$zig_aspp_wrapper"
+
 zig_ar_wrapper="${PREFIX}/bin/$HOST_TARGET-target-ar"
 make_wrapper "$zig_ar_wrapper" "${ZIG} ar"
+make_windows_cmd_wrapper "$zig_ar_wrapper"
+
+zig_ar_wrapper="${PREFIX}/bin/$HOST_TARGET-target-ranlib"
+make_wrapper "$zig_ar_wrapper" "${ZIG} ranlib -target ${HOST_TARGET}"
 make_windows_cmd_wrapper "$zig_ar_wrapper"

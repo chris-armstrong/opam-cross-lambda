@@ -277,7 +277,7 @@ zig_native="$ZIG"
   ${EXTRA_CONFIG_OPTS} \
   -C "CC=${ZIG_TARGET}-target-cc" \
   "AR=${ZIG_TARGET}-target-ar" \
-  "RANLIB=${zig_native} ranlib -target ${ZIG_TARGET}" \
+  "RANLIB=${ZIG_TARGET}-target-ranlib" \
   "ASPP=${ZIG_TARGET}-target-aspp" \
   "MIN64CC=${ZIG_TARGET}-target-cc" \
   "PARTIALLD=${ZIG_TARGET}-target-cc -r " \
