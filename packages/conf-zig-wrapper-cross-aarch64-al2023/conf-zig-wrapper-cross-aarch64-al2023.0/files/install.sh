@@ -26,7 +26,9 @@ function make_wrapper() {
   wrapper_script_path=$1
   caml_bin=$2
   cat << EOF > "$wrapper_script_path"
-#!/bin/bash
+#!/bin/sh
+
+set -x
 
 NEW_ARGS=""
 

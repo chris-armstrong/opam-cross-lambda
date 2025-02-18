@@ -7,7 +7,7 @@ install: [
   ["bash" "install.sh" "%{prefix}%" "aarch64-al2023" "aarch64-linux-gnu.2.34"]
 ]
 extra-files: [
-  [ "install.sh" "sha256=ce868d40fb02ddf5aaaa33dc4dda05bd987ab2181beac0ad9cf1e24781eab05d" ]
+  [ "install.sh" "sha256=5a3bdad660394f2431760ad3f4d68a9bcd222b70d58cf0615ccbe0ce0ecc101d" ]
   [ "build.sh" "sha256=097c83837b6d88321e87ddde9587b375a6c4780cdaf6d5461e3fd00775486c04"]
 ]
 synopsis:
