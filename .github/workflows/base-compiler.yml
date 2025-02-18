@@ -70,6 +70,7 @@ jobs:
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: 5.3.0
+          opam-disable-sandboxing: true
       - name: add repository
         run: opam repo add cross .
       - name: configure and install zig wrapper
