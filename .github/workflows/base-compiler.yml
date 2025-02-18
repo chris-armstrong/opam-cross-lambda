@@ -68,7 +68,7 @@ jobs:
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: 5.3.0
-          opam-disable-sandboxing: true
+          #opam-disable-sandboxing: true
       - name: add repository
         run: opam repo add cross .
       - name: configure and install zig wrapper
@@ -83,8 +83,14 @@ jobs:
           { echo "#include <stdio.h>"; echo "int main() { return 0; }"; } > test.c
           export PATH=$PATH:$OPAM_SWITCH_PREFIX/bin
           aarch64-al2023-target-cc -o test test.c
+        env:
+          ZIG_GLOBAL_CACHE_DIR: /tmp/zig-cache
+          ZIG_LOCAL_CACHE_DIR: /tmp/zig-cache-local
       - name: install aarch64 compiler
         run: opam install ocaml-cross-aarch64-al2023 --verbose 
+        env:
+          ZIG_GLOBAL_CACHE_DIR: /tmp/zig-cache
+          ZIG_LOCAL_CACHE_DIR: /tmp/zig-cache-local
 
   x86_64-al2023_5_3:
     strategy:
