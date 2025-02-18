@@ -335,16 +335,15 @@ make_host () {
   [ "$machine" = "Cygwin" ] && CAMLC=$(cygpath -m "$(which "$CAMLC")")
   CAMLOPT="$host_compiler_path/host-ocamlopt"
   [ "$machine" = "Cygwin" ] && CAMLOPT=$(cygpath -m "$(which "$CAMLOPT")")
-  ZSTD_LIBS=
-  if [ "$has_zstd" = "true" ]
-  then
-    ZSTD_LIBS="-lzstd "
-  fi
+  
+  ZSTD_LIBS=$(get_host_variable "ZSTD_LIBS")
+  BYTECC_LIBS=$(get_host_variable "BYTECC_LIBS")
   MIN64CC="${CROSS_NAME}-target-cc"
   make_caml \
     NATDYNLINK="$NATDYNLINK" \
     NATDYNLINKOPTS="$NATDYNLINKOPTS" \
     ZSTD_LIBS="${ZSTD_LIBS}" \
+    BYTECC_LIBS="${BYTECC_LIBS}" \
     MIN64CC="$MIN64CC" \
     "$@"
 }
