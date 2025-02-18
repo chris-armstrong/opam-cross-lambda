@@ -15,7 +15,6 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-          # - macos-latest
           - windows-latest
   
     runs-on: ${{ matrix.os }}
@@ -48,6 +47,45 @@ jobs:
       - name: install aarch64 compiler
         run: opam install ocaml-cross-aarch64-al2023 --verbose 
           
+  # Mac requires disabling sandboxing (zig seems to fail at the configure stage with AccessDenied building conftest.c)
+  aarch64-al2023_5_3-mactarget:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+        
+    runs-on: ${{ matrix.os }}
+  
+    steps:
+      - name: Checkout tree
+        uses: actions/checkout@v4
+      - name: install zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: master
+      - name: Set-up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: 5.3.0
+          opam-disable-sandboxing: true
+      - name: add repository
+        run: opam repo add cross .
+      - name: configure and install zig wrapper
+        run: opam install conf-zig-wrapper-cross-aarch64-al2023
+        env:
+          ZIG_PATH: zig
+      - name: validate zig works
+        if: ${{ runner.os != 'windows' }}
+        shell: bash
+        run: |
+          eval $(opam env)
+          { echo "#include <stdio.h>"; echo "int main() { return 0; }"; } > test.c
+          export PATH=$PATH:$OPAM_SWITCH_PREFIX/bin
+          aarch64-al2023-target-cc -o test test.c
+      - name: install aarch64 compiler
+        run: opam install ocaml-cross-aarch64-al2023 --verbose 
+
   x86_64-al2023_5_3:
     strategy:
       fail-fast: false
@@ -70,7 +108,6 @@ jobs:
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: 5.3.0
-          opam-disable-sandboxing: true
       - name: add repository
         run: opam repo add cross .
       - name: configure and install zig wrapper
