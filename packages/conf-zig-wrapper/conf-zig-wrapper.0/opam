@@ -1,0 +1,11 @@
+opam-version: "2.0"
+maintainer: "hello@chrisarmstrong.dev"
+install: [
+  ["bash" "install.sh" "%{prefix}%" "zig-cross" "%{conf-zig-cross:zig_triple}%"]
+]
+extra-files: [
+  [ "install.sh" "sha256=73690c04b4779d2ec7bae905eb8d18da21bef48b765056fa892801416582473f" ]
+]
+depends: [ "conf-zig-cross" ]
+synopsis:
+  "Virtual package specifying ocaml-cross zig wrapper utilities configuration"

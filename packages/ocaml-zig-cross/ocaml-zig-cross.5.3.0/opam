@@ -1,6 +1,6 @@
 opam-version: "2.0"
 license: "LGPL-2.1-or-later WITH OCaml-LGPL-linking-exception"
-synopsis: "OCaml 5.3.0 cross-compiled for x86_64-al2023"
+synopsis: "OCaml 5.3.0, cross-compiled for aarch64-al2023"
 maintainer: [
   "Chris Armstrong <hello@chrisarmstrong.dev>"
 ]
@@ -44,8 +44,7 @@ depends: [
   # All the 32-bit architectures are bytecode-only
   "ocaml-option-bytecode-only" {arch != "arm64" & arch != "x86_64" & arch != "s390x" & arch != "riscv64" & arch != "ppc64"}
 
-  # Support Packages
-  "conf-zig-wrapper-cross-x86_64-al2023"
+  "conf-zig-wrapper"
 
   # ocamlfind (needed for findlib extension)
   "ocamlfind"
@@ -60,13 +59,12 @@ build-env: [
   [ASAN_OPTIONS = "detect_leaks=0,exitcode=0"]
 ]
 build: [
-  [ "sh" "-x" "./build.sh" 
-    "-p" "%{prefix}%/cross-sysroot" 
+  [ "sh" "-x" "./build.sh"
+    "-p" "%{prefix}%/cross-sysroot"
     "-o" "%{prefix}%"
-    "-c" "x86_64-al2023"
-    "-t" "x86_64-linux-gnu" # ocaml target triple 
-    "-j" "%{jobs}%" 
-    "-z" "%{conf-zig-wrapper-cross-x86_64-al2023:zig_path}%"
+    "-c" "zig-cross"
+    "-t" "%{conf-zig-cross:ocaml_triple}%"
+    "-j" "%{jobs}%"
     "-f" "%{flexdll:share}%"
     "-v" "5.3"
   ]
@@ -77,8 +75,8 @@ url {
   checksum: "sha256=22c1dd9de21bf43b62d1909041fb5fad648905227bf69550a6a6bef31e654f38"
 }
 extra-files: [
-  [ "build.sh" "sha256=09c02764edaffb4cb3bf050cbc388c5bbf9f9ad0ec925010deff28e6db4adb34" ]
-  [ "install.sh" "sha256=99ab924fbd2821b81779395294b2254ed7ae791d64f48b66dcfdf8eaec8f64ad" ]
+  [ "build.sh" "sha256=9a1a7bdcd1685844e5f0efd9125535c1da66ada253767e28189532b04cf2403e" ]
+  [ "install.sh" "sha256=1a99f3df4d160874c3c85db995f5a080164f235f02ce73fd1b8ec7ad5f01c22e" ]
   [ "cross_5_3.patch" "sha256=a65899d6ec53f166963d6b11b08eda7b571b729b6b25a03034451160a229896c" ]
 ]
 extra-source "ocaml-cross.install" {

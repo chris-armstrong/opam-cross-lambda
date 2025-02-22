@@ -17,12 +17,14 @@ PREFIX=
 CPU_COUNT=4
 SOURCE_DIR=$(realpath "${PWD}")
 HOST_SWITCH=
-ZIG=zig
+ZIG=$(which zig)
 EXTRA_CONFIG_OPTS=
 OCAML_VERSION=5.2
 FLEXDLL_PATH=
+export ZIG_GLOBAL_CACHE_DIR=$TMPDIR/zig-cache
+export ZIG_LOCAL_CACHE_DIR=$TMPDIR/zig-cache-local
 
-usage () { echo "$0 -p <prefix> -o <host_switch> -c <cross_name> -t <ocaml_target> [-j <cpu count>] [-s <sources_dir>] [-z <path_to_zig_executable>] [-a <extra-config-opts>] -f <flexdll_path> -v <ocaml_version>"; exit 1; }
+usage () { echo "$0 -p <prefix> -o <host_switch> -c <cross_name> -t <ocaml_target> [-j <cpu count>] [-s <sources_dir>] [-a <extra-config-opts>] -f <flexdll_path> -v <ocaml_version>"; exit 1; }
 
 while getopts ":hp:t:j:s:z:g:o:a:v:t:f:c:" option; do
   case $option in

@@ -6,6 +6,9 @@ PREFIX=$1
 HOST_SWITCH=$2
 CROSS_NAME=$3
 
+export ZIG_GLOBAL_CACHE_DIR=${TMPDIR:-/tmp}/zig-cache
+export ZIG_LOCAL_CACHE_DIR=${TMPDIR:-/tmp}/zig-cache-local
+
 # determine runtime machine
 unameOut=$(uname -s)
 case "$unameOut" in
