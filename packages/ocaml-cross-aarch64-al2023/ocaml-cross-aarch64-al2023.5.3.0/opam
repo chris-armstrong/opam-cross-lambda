@@ -77,8 +77,8 @@ url {
   checksum: "sha256=22c1dd9de21bf43b62d1909041fb5fad648905227bf69550a6a6bef31e654f38"
 }
 extra-files: [
-  [ "build.sh" "sha256=09c02764edaffb4cb3bf050cbc388c5bbf9f9ad0ec925010deff28e6db4adb34" ]
-  [ "install.sh" "sha256=99ab924fbd2821b81779395294b2254ed7ae791d64f48b66dcfdf8eaec8f64ad" ]
+  [ "build.sh" "sha256=4de3e8d02d2f0e69df4a00cdd0691b7ddb6d8a5469d1652eddfc4adec99f02a7" ]
+  [ "install.sh" "sha256=a7b0829b19b048d75fc236be05586ad07bde8de8619b11a5b764f5eb5fa49dbc" ]
   [ "cross_5_3.patch" "sha256=a65899d6ec53f166963d6b11b08eda7b571b729b6b25a03034451160a229896c" ]
 ]
 extra-source "ocaml-cross.install" {
