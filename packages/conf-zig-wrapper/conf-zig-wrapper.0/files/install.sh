@@ -67,6 +67,10 @@ zig_cc_wrapper="${PREFIX}/bin/$CROSS_NAME-target-cc"
 make_wrapper "$zig_cc_wrapper" "${ZIG} cc -target ${HOST_TARGET}"
 make_windows_cmd_wrapper "$zig_cc_wrapper"
 
+zig_cxx_wrapper="${PREFIX}/bin/$CROSS_NAME-target-c++"
+make_wrapper "$zig_cxx_wrapper" "${ZIG} c++ -target ${HOST_TARGET}"
+make_windows_cmd_wrapper "$zig_cxx_wrapper"
+
 zig_aspp_wrapper="${PREFIX}/bin/$CROSS_NAME-target-aspp"
 make_wrapper "$zig_aspp_wrapper" "${ZIG} cc -target ${HOST_TARGET} -c"
 make_windows_cmd_wrapper "$zig_aspp_wrapper"
