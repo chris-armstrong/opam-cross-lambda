@@ -1,0 +1,97 @@
+opam-version: "2.0"
+license: "LGPL-2.1-or-later WITH OCaml-LGPL-linking-exception"
+synopsis: "OCaml 5.3.0 cross-compiled for x86_64-al2023"
+maintainer: [
+  "Chris Armstrong <hello@chrisarmstrong.dev>"
+]
+authors: [
+  "Xavier Leroy"
+  "Damien Doligez"
+  "Alain Frisch"
+  "Jacques Garrigue"
+  "Didier Rémy"
+  "KC Sivaramakrishnan"
+  "Jérôme Vouillon"
+]
+homepage: "https://ocaml.org"
+bug-reports: "https://github.com/ocaml/opam-repository/issues"
+dev-repo: "git+https://github.com/ocaml/ocaml.git#5.3"
+depends: [
+  # This is OCaml 5.3.0
+  "ocaml" {= "5.3.0" & post}
+
+  # General base- packages
+  "base-unix" {post}
+  "base-bigarray" {post}
+  "base-threads" {post}
+  "base-domains" {post}
+  "base-nnp" {post}
+  "base-effects" {post}
+
+  # Port selection (Windows)
+  # amd64 mingw-w64 / MSVC
+  (("arch-x86_64" {os = "win32" & arch = "x86_64"} &
+     (("system-mingw" & "mingw-w64-shims" {os-distribution = "cygwin" & build}) |
+      ("system-msvc" & "winpthreads" & "ocaml-option-no-compression" {os = "win32"}))) |
+  # i686 mingw-w64 / MSVC
+   ("arch-x86_32" {os = "win32"} & "ocaml-option-bytecode-only" {os = "win32"} &
+     (("system-mingw" & "mingw-w64-shims" {os-distribution = "cygwin" & build}) |
+      ("system-msvc" & "winpthreads" & "ocaml-option-no-compression" {os = "win32"}))) |
+  # Non-Windows systems need to install something to satisfy this formula, so
+  # repeat the base-unix dependency
+   "base-unix" {os != "win32" & post})
+
+  # All the 32-bit architectures are bytecode-only
+  "ocaml-option-bytecode-only" {arch != "arm64" & arch != "x86_64" & arch != "s390x" & arch != "riscv64" & arch != "ppc64"}
+
+  # Support Packages
+  "conf-zig-wrapper-cross-x86_64-w64-mingw32"
+
+  # ocamlfind (needed for findlib extension)
+  "ocamlfind"
+
+  # flexdll
+  "flexdll"
+]
+setenv: CAML_LD_LIBRARY_PATH = "%{lib}%/stublibs"
+x-env-path-rewrite: [
+  [CAML_LD_LIBRARY_PATH (";" {os = "win32"} ":" {os != "win32"}) "target"]
+]
+build-env: [
+  [MSYS2_ARG_CONV_EXCL = "*"]
+  [LSAN_OPTIONS = "detect_leaks=0,exitcode=0"]
+  [ASAN_OPTIONS = "detect_leaks=0,exitcode=0"]
+]
+build: [
+  [ "sh" "-x" "./build.sh" 
+    "-p" "%{prefix}%/cross-sysroot" 
+    "-o" "%{prefix}%"
+    "-c" "x86_64-w64-mingw32"
+    "-t" "x86_64-w64-mingw32" # ocaml target triple 
+    "-j" "%{jobs}%" 
+    "-z" "%{conf-zig-wrapper-cross-x86_64-w64-mingw32:zig_path}%"
+    "-f" "%{flexdll:share}%"
+    "-v" "5.3"
+  ]
+]
+install: [ "sh" "install.sh" "%{prefix}%/cross-sysroot" "%{prefix}%" "cross"]
+url {
+  src: "https://github.com/ocaml/ocaml/releases/download/5.3.0/ocaml-5.3.0.tar.gz"
+  checksum: "sha256=22c1dd9de21bf43b62d1909041fb5fad648905227bf69550a6a6bef31e654f38"
+}
+extra-files: [
+  [ "build.sh" "sha256=09c02764edaffb4cb3bf050cbc388c5bbf9f9ad0ec925010deff28e6db4adb34" ]
+  [ "install.sh" "sha256=99ab924fbd2821b81779395294b2254ed7ae791d64f48b66dcfdf8eaec8f64ad" ]
+  [ "cross_5_3.patch" "sha256=a65899d6ec53f166963d6b11b08eda7b571b729b6b25a03034451160a229896c" ]
+]
+extra-source "ocaml-cross.install" {
+  src:
+    "https://raw.githubusercontent.com/ocaml/opam-source-archives/main/patches/ocaml-base-compiler/ocaml-base-compiler.install"
+  checksum: [
+    "sha256=79f2a1a5044a91350a0eb6ce12e261a72a2855c094c425cddf3860e58c486678"
+    "md5=3e969b841df1f51ca448e6e6295cb451"
+  ]
+}
+patches: [
+  "cross_5_3.patch"
+]
