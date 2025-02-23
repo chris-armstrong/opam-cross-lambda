@@ -280,6 +280,7 @@ zig_native="$ZIG"
   "RANLIB=${CROSS_NAME}-target-ranlib" \
   "ASPP=${CROSS_NAME}-target-aspp" \
   "MIN64CC=${CROSS_NAME}-target-cc" \
+  "RC=${CROSS_NAME}-target-rc" \
   "PARTIALLD=${CROSS_NAME}-target-cc -r " \
   "LD=${CROSS_NAME}-target-cc" \
   "LN=${ln_use}" || { echo " --- configure failed!"; cat config.log; exit 1; }
@@ -326,6 +327,8 @@ make_caml () {
        CAMLC="$CAMLC" OCAMLC="$CAMLC" \
        CAMLOPT="$CAMLOPT" OCAMLOPT="$CAMLOPT" \
        MIN64CC="$MIN64CC" \
+       RC="$RC" \
+       RES="$RES" \
        "$@"
 }
 
@@ -339,12 +342,16 @@ make_host () {
   ZSTD_LIBS=$(get_host_variable "ZSTD_LIBS")
   BYTECC_LIBS=$(get_host_variable "BYTECC_LIBS")
   MIN64CC="${CROSS_NAME}-target-cc"
+  RC="${CROSS_NAME}-target-rc"
+  RES="version.res"
   make_caml \
     NATDYNLINK="$NATDYNLINK" \
     NATDYNLINKOPTS="$NATDYNLINKOPTS" \
     ZSTD_LIBS="${ZSTD_LIBS}" \
     BYTECC_LIBS="${BYTECC_LIBS}" \
     MIN64CC="$MIN64CC" \
+    RC="$RC" \
+    RES="$RES" \
     "$@"
 }
 
@@ -356,11 +363,15 @@ make_target () {
   [ "$machine" = "Cygwin" ] && CAMLOPT=$(cygpath -m "$CAMLOPT")
 
   MIN64CC="${CROSS_NAME}-target-cc"
+  RC="${CROSS_NAME}-target-rc"
+  RES="version.res"
   make_caml \
     BUILD_ROOT="$build_root_native" \
     CAMLC="$CAMLC" \
     CAMLOPT="$CAMLOPT" \
     MIN64CC="$MIN64CC" \
+    RC="$RC" \
+    RES="$RES" \
     "$@"
 }
 echo "---- MAKING HOST ----"
