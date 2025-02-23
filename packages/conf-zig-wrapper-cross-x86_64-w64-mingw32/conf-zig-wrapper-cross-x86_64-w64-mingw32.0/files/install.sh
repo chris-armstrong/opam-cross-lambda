@@ -78,3 +78,7 @@ make_windows_cmd_wrapper "$zig_ar_wrapper"
 zig_ar_wrapper="${PREFIX}/bin/$CROSS_NAME-target-ranlib"
 make_wrapper "$zig_ar_wrapper" "${ZIG} ranlib -target ${HOST_TARGET}"
 make_windows_cmd_wrapper "$zig_ar_wrapper"
+
+zig_rc_wrapper="${PREFIX}/bin/$CROSS_NAME-target-rc"
+make_wrapper "$zig_rc_wrapper" "${ZIG} rc"
+make_windows_cmd_wrapper "$zig_rc_wrapper"
