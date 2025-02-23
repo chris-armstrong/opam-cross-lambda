@@ -6,6 +6,6 @@ install: [
 extra-files: [
   [ "install.sh" "sha256=73690c04b4779d2ec7bae905eb8d18da21bef48b765056fa892801416582473f" ]
 ]
-depends: [ "conf-zig-cross" ]
+depends: [ "conf-zig" "conf-zig-cross" ]
 synopsis:
   "Virtual package specifying ocaml-cross zig wrapper utilities configuration"
