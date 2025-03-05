@@ -1,13 +1,13 @@
 [@@@warning "-26"]
+[@@@warning "-27"]
 [@@@warning "-32"]
+[@@@warning "-33"]
 
 open Containers
 
 let source_repository_path = Array.get Sys.argv 1
 let destination_repository_path = Array.get Sys.argv 2
-let package_name = Array.get Sys.argv 3
-let package_version = Array.get Sys.argv 4
-let cross_name = Array.get Sys.argv 5
+let cross_name = Array.get Sys.argv 3
 
 let pp_arg fmt (arg, _) =
   match arg with
@@ -19,157 +19,183 @@ let pp_build fmt (args, _) =
     (Format.pp_print_list ~pp_sep:Format.pp_print_space pp_arg)
     args
 
-let string_of_constraint =
-  let open OpamTypes in
-  OpamFormula.string_of_formula (function
-    | Constraint (op, FString s) ->
-        Printf.sprintf "(op:%s string:\"%s\")"
-          (OpamPrinter.FullPos.relop_kind op)
-          s
-    | Constraint (op, (FIdent _ as v)) ->
-        Printf.sprintf "(op:%s ident:%s)"
-          (OpamPrinter.FullPos.relop_kind op)
-          (OpamFilter.to_string v)
-    | Constraint (op, v) ->
-        Printf.sprintf "op:%s filter:(%s)"
-          (OpamPrinter.FullPos.relop_kind op)
-          (OpamFilter.to_string v)
-    | Filter f -> "filter:" ^ OpamFilter.to_string f)
+module Solver = Opam_0install.Solver.Make (Opam_0install.Dir_context)
 
-let rec has_filter s =
-  OpamTypes.(
-    function
-    | FString _ -> false
-    | FAnd (x, y) ->
-        (* Printf.printf "FAnd"; *)
-        has_filter s x || has_filter s y
-    | FOr (x, y) ->
-        (* Printf.printf "FOr"; *)
-        has_filter s x || has_filter s y
-    | FDefined x ->
-        (* Printf.printf "FDefined"; *)
-        has_filter s x
-    | FOp (x, _, y) ->
-        (* Printf.printf "FOp"; *)
-        has_filter s x || has_filter s y
-    | FIdent (_, v, _) ->
-        String.equal (OpamVariable.to_string v) s
-        (* Printf.printf "FIdent:%s:%s;" *)
-        (*   (String.concat ", " *)
-        (*      (names *)
-        (*      |> List.map (function *)
-        (*           | Some n -> OpamPackage.Name.to_string n *)
-        (*           | None -> "<none>"))) *)
-        (*   (OpamVariable.to_string v); *)
-    | _ -> false)
-
-let has_formula x fc =
-  let open OpamTypes in
-  let test_condition = function
-    | Constraint (_, f) -> has_filter x f
-    | Filter f -> has_filter x f
+let map_package_roots source_repository_path destination_repository_path
+    cross_name listed_packages =
+  let env =
+    Opam_0install.Dir_context.std_env ~arch:"x86_64" ~os:"linux"
+      ~os_family:"RedHat" ~os_distribution:"Amazon" ~os_version:"10"
+      ~sys_ocaml_version:"5.3.0" ()
   in
-  let res = OpamFormula.exists test_condition fc in
-  (* Printf.printf "===\n"; *)
-  res
+  let constraints =
+    OpamPackage.Name.(
+      Map.empty
+      |> Map.add (of_string "ocaml") (`Eq, OpamPackage.Version.of_string "5.3.0"))
+  in
+  let context =
+    Opam_0install.Dir_context.create ~constraints ~env
+      (source_repository_path ^ "/packages")
+  in
+  (* Parse package names into actual package requests *)
+  let package_atoms =
+    List.map
+      (fun name ->
+        (* match String.Split.left ~by:"." name with *)
+        (* | Some (name, version) -> *)
+        (*     ( OpamPackage.Name.of_string name, *)
+        (*       Some (`Eq, OpamPackage.Version.of_string version) ) *)
+        (* | None -> (OpamPackage.Name.of_string name, None)) *)
+        OpamPackage.Name.of_string name)
+      listed_packages
+  in
+  let result = Solver.solve context package_atoms in
+  match result with
+  | Error e -> print_endline (Solver.diagnostics e)
+  | Ok selections ->
+      Solver.packages_of_result selections
+      |> List.iter (fun pkg ->
+             Printf.printf "  - %s\n" (OpamPackage.to_string pkg))
 
-let has_build_formula fc = has_formula "build" fc || has_formula "dev" fc
-let has_dev_formula fc = has_formula "dev-setup" fc
-let has_test_formula fc = has_formula "with-test" fc
-let has_doc_formula fc = has_formula "with-doc" fc
-let has_build_filter fc = has_filter "build" fc
-let has_dev_filter fc = has_filter "dev-setup" fc || has_filter "dev" fc
-let has_test_filter fc = has_filter "with-test" fc
-let has_doc_filter fc = has_filter "with-doc" fc
+let map_package_roots_old source_repository_path destination_repository_path
+    cross_name listed_packages =
+  let open OpamTypes in
+  let open OpamSolver in
+  let open OpamPackage in
+  let open OpamStateTypes in
+  let gt = OpamGlobalState.load `Lock_read in
+  let default_repo_name = OpamRepositoryName.of_string "default" in
+  let rt = OpamRepositoryState.load `Lock_read gt in
+  let default_root = OpamRepositoryState.get_root rt default_repo_name in
+  Printf.printf "Default root: %s\n" (OpamFilename.Dir.to_string default_root);
+  let st =
+    OpamSwitchState.load_virtual ~repos_list:[ default_repo_name ] gt rt
+  in
 
-let remap_depends cross_suffix depends =
-  depends
-  |> OpamFormula.map
-     @@ fun ((name, fc) : OpamTypes.name * OpamTypes.condition) ->
-     Format.printf "Name = %s, Condition = %s\n"
-       (OpamPackage.Name.to_string name)
-       (string_of_constraint fc);
-     let name_s = OpamPackage.Name.to_string name in
+  (* Create universe for the solver *)
+  let package_set = OpamRepository.packages default_root in
+  let universe = OpamSwitchState.universe ~requested:package_set st Query in
 
-     match name_s with
-     | "dune" -> Atom (name, fc)
-     | "ocaml" -> Atom (OpamPackage.Name.of_string (name_s ^ cross_suffix), fc)
-     | _
-       when has_build_formula fc || has_dev_formula fc || has_test_formula fc
-            || has_doc_formula fc ->
-         Empty
-     | _ -> Atom (OpamPackage.Name.of_string (name_s ^ cross_suffix), fc)
+  (* Parse package names into actual package requests *)
+  let package_atoms =
+    List.map
+      (fun name ->
+        match String.Split.left ~by:"." name with
+        | Some (name, version) ->
+            ( OpamPackage.Name.of_string name,
+              Some (`Eq, OpamPackage.Version.of_string version) )
+        | None -> (OpamPackage.Name.of_string name, None))
+      listed_packages
+  in
+  let solver =
+    Lazy.from_fun (fun () ->
+        OpamCudfSolver.solver_of_string "builtin-mccs+glpk")
+  in
+  let config = OpamSolverConfig.init in
+  let () = config ~solver () in
+  let requested =
+    OpamSolver.request ~criteria:`Default ~install:package_atoms ()
+  in
 
-let remap_build ~name ~cross_name (commands : OpamTypes.command list) =
-  let name_s = OpamPackage.Name.to_string name in
-  commands
-  |> List.filter_map @@ fun (args, fc) ->
-     if
-       fc
-       |> Option.map_or ~default:false @@ fun fc ->
-          has_build_filter fc || has_dev_filter fc || has_test_filter fc
-          || has_doc_filter fc
-     then None
-     else
-       let open OpamTypes in
-       Some
-         (match args with
-         | (CString "dune", f1)
-           :: (CString "build", f2)
-           :: (CString "-p", f3)
-           :: (CIdent "name", f4)
-           :: remaining ->
-             ( (CString "dune", f1) :: (CString "build", f2)
-               :: (CString "-p", f3) :: (CString name_s, f4)
-               :: (CString "-x", None) :: (CString cross_name, None)
-               :: remaining,
-               fc )
-         | _ -> (args, fc))
+  (* Request the solver to find a solution *)
+  match OpamSolver.resolve universe requested with
+  | Success solution ->
+      (* Extract the packages from the solution *)
+      let packages = OpamSolver.all_packages solution in
+      Printf.printf "Resolved packages:\n";
+      OpamPackage.Set.iter
+        (fun p -> Printf.printf "  - %s\n" (OpamPackage.to_string p))
+        packages;
+      ()
+  | Conflicts conflicts ->
+      Printf.printf "Could not resolve dependencies: conflicts detected\n";
+      OpamCudf.string_of_conflicts OpamPackage.Set.empty (fun _ -> "") conflicts
+      |> Printf.printf "%s\n";
+      ()
 
-let remap_name ~cross_suffix name =
-  let name_s = OpamPackage.Name.to_string name in
-  OpamPackage.Name.of_string (name_s ^ cross_suffix)
+(* let open OpamSolver in *)
+(* let source_repository_dir = *)
+(*   OpamFilename.Dir.of_string source_repository_path *)
+(* in *)
+(* let source_package_set = OpamRepository.packages source_repository_dir in *)
+(* let universe = Op in *)
+(* let universe = *)
+(*   OpamSolver.load_cudf_universe universe source_package_set ~build:false *)
+(*     ~post:false () *)
+(* in *)
+(* let install_formula = *)
+(*   listed_packages |> List.map OpamFormula.atom_of_string *)
+(* in *)
+(* let resolve_request = request ~install:install_formula () in *)
+(* Format.printf "Resolving %s\n" (string_of_request resolve_request); *)
+(* let solution = reslove universe resolve_request in *)
+(* let result_string = *)
+(*   solution |> function *)
+(*   | OpamTypes.Success solution -> *)
+(*       "Solved: " ^ (solution_to_json solution |> OpamJson.to_string) *)
+(*   | OpamTypes.Conflicts x -> "Conflict" *)
+(* in *)
+(* Format.printf "Solution %s\n" result_string; *)
 
+(* Remap.opam_file ~source_repository_path ~destination_repository_path cross_name *)
+
+(**)
 let main () =
-  let package_path =
-    OpamFilename.Op.(
-      OpamFilename.Dir.of_string source_repository_path
-      / "packages" / package_name
-      / (package_name ^ "." ^ package_version))
+  let open Cmdliner in
+  let source_repository_path =
+    let doc = "The path to the source repository" in
+    Arg.(
+      required
+      & pos 0 (some string) None
+      & info [] ~docv:"SOURCE_REPOSITORY_PATH" ~doc)
   in
-  let file = OpamFile.make OpamFilename.Op.(package_path // "opam") in
+  let destination_repository_path =
+    let doc = "The path to the destination repository" in
+    Arg.(
+      required
+      & pos 1 (some string) None
+      & info [] ~docv:"DESTINATION_REPOSITORY_PATH" ~doc)
+  in
+  let cross_name =
+    let doc = "The cross compiler name / toolchain name" in
+    Arg.(required & pos 2 (some string) None & info [] ~docv:"CROSS_NAME" ~doc)
+  in
+  let listed_packages =
+    let doc = "packages to resolve" in
+    Arg.(required & pos 3 (some (list string)) (Some []) & info [] ~doc)
+  in
+  let map_packages_t =
+    Term.(
+      const map_package_roots_old
+      $ source_repository_path $ destination_repository_path $ cross_name
+      $ listed_packages)
+  in
+  let cmd =
+    let doc =
+      "produce a repository with -cross-<cross_name> packages and their \
+       dependencies ready to install with opam"
+    in
+    let man = [] in
+    let info = Cmd.info "map-packages" ~version:"%%VERSION%%" ~doc ~man in
+    Cmd.v info map_packages_t
+  in
 
-  let cross_suffix = "-cross-" ^ cross_name in
+  let info =
+    let doc = "OCaml cross compilation package management utilities" in
+    let man = [] in
+    Cmd.info "packman" ~version:"%%VERSION%%" ~doc ~man
+  in
 
-  let opam = file |> OpamFile.OPAM.read in
-  let name = opam |> OpamFile.OPAM.name in
+  let g = Cmdliner.Cmd.group info [ cmd ] in
+  exit (Cmd.eval g)
 
-  let target_depends =
-    opam |> OpamFile.OPAM.depends |> remap_depends cross_suffix
-  in
-  let target_build =
-    opam |> OpamFile.OPAM.build |> remap_build ~name ~cross_name
-  in
-  let target_name = name |> remap_name ~cross_suffix in
-  let opam =
-    opam
-    |> OpamFile.OPAM.with_depends target_depends
-    |> OpamFile.OPAM.with_name target_name
-    |> OpamFile.OPAM.with_build target_build
-  in
-  let destination_package_path =
-    OpamFilename.Op.(
-      OpamFilename.Dir.of_string destination_repository_path
-      / "packages"
-      / (package_name ^ "-cross-" ^ cross_name)
-      / (package_name ^ "-cross-" ^ cross_name ^ "." ^ package_version)
-      // "opam")
-  in
-  let destination_file = OpamFile.make destination_package_path in
-  OpamFile.OPAM.write destination_file opam
+(* let opam = OpamFile.OPAM.read "opam" in *)
+(* let name = OpamFile.OPAM.name opam in *)
+(* let version = OpamFile.OPAM.version opam in *)
+
 (* Format.printf "Name = %s\nVersion = %s\n" name version; *)
 (**)
 (* let build = OpamFile.OPAM.build opam in *)
 (* Format.printf "Build\n%a" (Format.pp_print_list ~pp_sep:(fun fmt () -> Format.fprintf fmt "<newline>@\n") pp_build) build *)
 
-let _ = main ()
+let () = main ()
