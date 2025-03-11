@@ -111,39 +111,47 @@ let remap_name ~cross_suffix name =
   let name_s = OpamPackage.Name.to_string name in
   OpamPackage.Name.of_string (name_s ^ cross_suffix)
 
-let opam_file ~source_repository_path ~destination_repository_path ~package_name
+let opam_file ~source_repository_name ~destination_repository_path ~package_name
     ~package_version ~cross_name () =
-  let package_path =
-    OpamFilename.Op.(
-      OpamFilename.Dir.of_string source_repository_path
-      / "packages" / package_name
-      / (package_name ^ "." ^ package_version))
-  in
+  try
+    let gt = OpamGlobalState.load `Lock_read in
+    let rt = OpamRepositoryState.load `Lock_read gt in
+    let source_repository_path =
+      source_repository_name |> OpamRepositoryName.of_string
+      |> OpamRepositoryState.get_root rt
+    in
+    let package_path =
+      OpamFilename.Op.(
+        source_repository_path / "packages" / package_name
+        / (package_name ^ "." ^ package_version))
+    in
 
-  let file = OpamFile.make OpamFilename.Op.(package_path // "opam") in
-  let opam = file |> OpamFile.OPAM.read in
-  let name = opam |> OpamFile.OPAM.name in
-  let cross_suffix = Names.cross_suffix cross_name in
-  let target_depends =
-    opam |> OpamFile.OPAM.depends |> remap_depends cross_suffix
-  in
-  let target_build =
-    opam |> OpamFile.OPAM.build |> remap_build ~name ~cross_name
-  in
-  let target_name = name |> remap_name ~cross_suffix in
-  let opam =
-    opam
-    |> OpamFile.OPAM.with_depends target_depends
-    |> OpamFile.OPAM.with_name target_name
-    |> OpamFile.OPAM.with_build target_build
-  in
-  let destination_package_name = package_name ^ cross_suffix in
-  let destination_package_path =
-    OpamFilename.Op.(
-      OpamFilename.Dir.of_string destination_repository_path
-      / "packages" / destination_package_name
-      / (destination_package_name ^ "." ^ package_version)
-      // "opam")
-  in
-  let destination_file = OpamFile.make destination_package_path in
-  OpamFile.OPAM.write destination_file opam
+    let file = OpamFile.make OpamFilename.Op.(package_path // "opam") in
+    let opam = file |> OpamFile.OPAM.read in
+    let name = opam |> OpamFile.OPAM.name in
+    let cross_suffix = Names.cross_suffix cross_name in
+    let target_depends =
+      opam |> OpamFile.OPAM.depends |> remap_depends cross_suffix
+    in
+    let target_build =
+      opam |> OpamFile.OPAM.build |> remap_build ~name ~cross_name
+    in
+    let target_name = name |> remap_name ~cross_suffix in
+    let opam =
+      opam
+      |> OpamFile.OPAM.with_depends target_depends
+      |> OpamFile.OPAM.with_name target_name
+      |> OpamFile.OPAM.with_build target_build
+    in
+    let destination_package_name = package_name ^ cross_suffix in
+    let destination_package_path =
+      OpamFilename.Op.(
+        OpamFilename.Dir.of_string destination_repository_path
+        / "packages" / destination_package_name
+        / (destination_package_name ^ "." ^ package_version)
+        // "opam")
+    in
+    let destination_file = OpamFile.make destination_package_path in
+    OpamFile.OPAM.write destination_file opam;
+    Ok ()
+  with _ -> Error "Failed to remap opam file"

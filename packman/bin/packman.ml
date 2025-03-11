@@ -25,18 +25,59 @@ let map_package_roots source_repository_name overlay_repository_name
     destination_repository_path cross_name listed_packages =
   let open Containers.Result in
   let base_packages = [ "ocaml-cross-" ^ cross_name ] in
-  let resolution =
-    Package_resolve.resolve
-      ~repositories:[ source_repository_name; overlay_repository_name ]
-      ~listed_packages ~base_packages ()
-  in
-  Result.iter
-    (fun resolution ->
-      Printf.printf "Resolved packages:\n";
-      OpamPackage.Set.iter
-        (fun p -> Printf.printf "  - %s\n" (OpamPackage.to_string p))
-        resolution)
-    resolution
+  match
+    let* resolved_packages =
+      Package_resolve.resolve
+        ~repositories:[ source_repository_name; overlay_repository_name ]
+        ~listed_packages ~base_packages ()
+    in
+
+    Printf.printf "Resolved packages:\n";
+    resolved_packages
+    |> OpamPackage.Set.iter (fun p ->
+           Printf.printf "  - %s\n" (OpamPackage.to_string p));
+    let packages_to_rewrite =
+      OpamPackage.Set.filter
+        (fun package ->
+          let name = OpamPackage.name package in
+          let version = OpamPackage.version package in
+          let package_name = OpamPackage.Name.to_string name in
+          let package_version = OpamPackage.Version.to_string version in
+          [ "dune"; "ocamlbuild"; "ocamlfind" ]
+          |> List.exists (fun name -> String.equal package_name name)
+          |> not)
+        resolved_packages
+    in
+    let succeeded, failed =
+      packages_to_rewrite |> OpamPackage.Set.to_seq
+      |> Seq.map (fun package ->
+             let name = OpamPackage.name package in
+             let version = OpamPackage.version package in
+             let package_name = OpamPackage.Name.to_string name in
+             let package_version = OpamPackage.Version.to_string version in
+             Remap.opam_file ~source_repository_name
+               ~destination_repository_path ~package_name ~package_version
+               ~cross_name ()
+             |> map (fun () -> package_name)
+             |> map_err (fun error -> (package_name, error)))
+      |> Seq.fold
+           (fun (succeeded, failed) res ->
+             match res with
+             | Ok package_name -> (package_name :: succeeded, failed)
+             | Error failure -> (succeeded, failure :: failed))
+           ([], [])
+    in
+    Fmt.pr "Successfully remapped packages: %a\n"
+      (Format.pp_print_list ~pp_sep:Fmt.comma Format.pp_print_string)
+      succeeded;
+    Fmt.pr "\nFailures: \n";
+    List.iter
+      (fun (package_name, error) -> Fmt.pr "  - %s: %s\n" package_name error)
+      failed;
+    Ok ()
+  with
+  | Ok _ -> ()
+  | Error error -> Printf.printf "Error: %s\n" error
 
 (**)
 let main () =
@@ -56,19 +97,19 @@ let main () =
       & info [] ~docv:"OVERLAY_REPOSITORY_NAME" ~doc)
   in
   let destination_repository_path =
-    let doc = "destination repository name" in
+    let doc = "destination repository path" in
     Arg.(
       required
-      & pos 1 (some string) None
-      & info [] ~docv:"DESTINATION_REPOSITORY_NAME" ~doc)
+      & pos 2 (some string) None
+      & info [] ~docv:"DESTINATION_REPOSITORY_PATH" ~doc)
   in
   let cross_name =
     let doc = "The cross compiler name / toolchain name" in
-    Arg.(required & pos 2 (some string) None & info [] ~docv:"CROSS_NAME" ~doc)
+    Arg.(required & pos 3 (some string) None & info [] ~docv:"CROSS_NAME" ~doc)
   in
   let listed_packages =
     let doc = "packages to resolve" in
-    Arg.(required & pos 3 (some (list string)) (Some []) & info [] ~doc)
+    Arg.(required & pos 4 (some (list string)) (Some []) & info [] ~doc)
   in
   let map_packages_t =
     Term.(
