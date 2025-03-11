@@ -61,7 +61,7 @@ build-env: [
 ]
 build: [
   [ "sh" "-x" "./build.sh" 
-    "-p" "%{prefix}%/cross-sysroot" 
+    "-p" "%{prefix}%/x86_64-al2023-sysroot" 
     "-o" "%{prefix}%"
     "-c" "x86_64-al2023"
     "-t" "x86_64-linux-gnu" # ocaml target triple 
@@ -71,7 +71,7 @@ build: [
     "-v" "5.3"
   ]
 ]
-install: [ "sh" "install.sh" "%{prefix}%/cross-sysroot" "%{prefix}%" "cross"]
+install: [ "sh" "install.sh" "%{prefix}%/x86_64-al2023-sysroot" "%{prefix}%" "x86_64-al2023"]
 url {
   src: "https://github.com/ocaml/ocaml/releases/download/5.3.0/ocaml-5.3.0.tar.gz"
   checksum: "sha256=22c1dd9de21bf43b62d1909041fb5fad648905227bf69550a6a6bef31e654f38"
