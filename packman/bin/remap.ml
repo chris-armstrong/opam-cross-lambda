@@ -83,6 +83,7 @@ let remap_depends cross_suffix depends =
 
 let remap_build ~name ~cross_name (commands : OpamTypes.command list) =
   let name_s = OpamPackage.Name.to_string name in
+  let toolchain_name = cross_name |> String.replace ~sub:"-" ~by:"_" in
   commands
   |> List.filter_map @@ fun (args, fc) ->
      if
@@ -102,7 +103,8 @@ let remap_build ~name ~cross_name (commands : OpamTypes.command list) =
            :: remaining ->
              ( (CString "dune", f1) :: (CString "build", f2)
                :: (CString "-p", f3) :: (CString name_s, f4)
-               :: (CString "-x", None) :: (CString cross_name, None)
+               :: (CString "-x", None)
+               :: (CString toolchain_name, None)
                :: remaining,
                fc )
          | _ -> (args, fc))
