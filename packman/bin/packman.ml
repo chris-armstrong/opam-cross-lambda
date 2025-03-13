@@ -74,6 +74,11 @@ let map_package_roots source_repository_name overlay_repository_name
     List.iter
       (fun (package_name, error) -> Fmt.pr "  - %s: %s\n" package_name error)
       failed;
+    OpamFile.Repo.create ()
+    |> OpamFile.Repo.write
+         (OpamFile.make
+            OpamFilename.Op.(
+              OpamFilename.Dir.of_string destination_repository_path // "repo"));
     Ok ()
   with
   | Ok _ -> ()
