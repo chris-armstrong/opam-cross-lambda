@@ -106,7 +106,10 @@ let remap_build ~name ~cross (commands : OpamTypes.command list) =
                :: (CString (Cross.toolchain cross), None)
                :: remaining,
                fc )
-         | _ -> (args, fc))
+         | _ ->
+             failwith
+               "Package does not have a dune-based build - create a \
+                cross-template for it")
 
 let opam_file ~source_repository_name ~destination_repository_path ~package
     ~cross () =
@@ -151,4 +154,6 @@ let opam_file ~source_repository_name ~destination_repository_path ~package
     in
     OpamFile.OPAM.write destination_file opam;
     Ok ()
-  with _ -> Error "Failed to remap opam file"
+  with
+  | Failure s -> Error ("Failed to remap opam file: " ^ s)
+  | _ as e -> Error ("Failed to remap opam file: " ^ Printexc.exn_slot_name e)
