@@ -21,6 +21,8 @@ let pp_build fmt (args, _) =
 
 module Solver = Opam_0install.Solver.Make (Opam_0install.Dir_context)
 
+let build_time_packages = [ "dune"; "ocamlbuild"; "ocamlfind" ]
+
 let map_package_roots source_repository_name overlay_repository_name
     cross_template_repository_path destination_repository_path cross_name
     listed_packages =
@@ -29,12 +31,19 @@ let map_package_roots source_repository_name overlay_repository_name
   let destination_repository_path =
     OpamFilename.Dir.of_string destination_repository_path
   in
-  let base_packages = [ "ocaml-cross-" ^ cross_name ] in
+  let repositories =
+    [ source_repository_name; overlay_repository_name ]
+    |> List.map OpamRepositoryName.of_string
+  in
+  let base_packages =
+    [
+      Cross.map_package_name cross (OpamPackage.Name.of_string "ocaml")
+      |> OpamPackage.Name.to_string;
+    ]
+  in
   match
     let* resolved_packages =
-      Package_resolve.resolve
-        ~repositories:[ source_repository_name; overlay_repository_name ]
-        ~listed_packages ~base_packages ()
+      Package_resolve.resolve ~repositories ~listed_packages ~base_packages ()
     in
 
     Printf.printf "Resolved packages:\n";
@@ -48,7 +57,7 @@ let map_package_roots source_repository_name overlay_repository_name
           let version = OpamPackage.version package in
           let package_name = OpamPackage.Name.to_string name in
           let package_version = OpamPackage.Version.to_string version in
-          [ "dune"; "ocamlbuild"; "ocamlfind" ]
+          build_time_packages
           |> List.exists (fun name -> String.equal package_name name)
           |> not)
         resolved_packages
@@ -57,9 +66,7 @@ let map_package_roots source_repository_name overlay_repository_name
       packages_to_rewrite |> OpamPackage.Set.to_seq
       |> Seq.map (fun package ->
              let name = OpamPackage.name package in
-             let version = OpamPackage.version package in
-             let package_name = OpamPackage.Name.to_string name in
-             let package_version = OpamPackage.Version.to_string version in
+             let name_s = OpamPackage.Name.to_string name in
              let has_template =
                Apply_cross_template.has_template ~cross_template_repository_path
                  package
@@ -69,8 +76,8 @@ let map_package_roots source_repository_name overlay_repository_name
                  Remap.opam_file ~source_repository_name
                    ~destination_repository_path ~package ~cross ()
              | true -> Ok ())
-             |> map (fun () -> package_name)
-             |> map_err (fun error -> (package_name, error)))
+             |> map (fun () -> name_s)
+             |> map_err (fun error -> (name_s, error)))
       |> Seq.fold
            (fun (succeeded, failed) res ->
              match res with
