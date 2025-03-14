@@ -1,5 +1,23 @@
 open Containers
 
+let resolve_package_set ~install ~with_error_message universe =
+  let requested = OpamSolver.request ~criteria:`Default ~install () in
+
+  (* Request the solver to find a solution *)
+  match OpamSolver.resolve universe requested with
+  | Success solution ->
+      (* Extract the packages from the solution *)
+      let packages = OpamSolver.all_packages solution in
+      Ok packages
+  | Conflicts conflicts ->
+      let conflicts =
+        OpamCudf.string_of_conflicts OpamPackage.Set.empty
+          (fun (name, _) ->
+            "Unable to locate package " ^ OpamPackage.Name.to_string name)
+          conflicts
+      in
+      Error (with_error_message ^ ": " ^ conflicts)
+
 let resolve ~repositories ~listed_packages ~base_packages () =
   let open OpamTypes in
   let gt = OpamGlobalState.load `Lock_read in
@@ -37,49 +55,24 @@ let resolve ~repositories ~listed_packages ~base_packages () =
   let solver =
     Lazy.from_fun (fun () -> OpamCudfSolver.solver_of_string "builtin-0install")
   in
+
+  (* initialise the solver explicitly otherwise OpamSolver will throw on "no criteria" *)
   let solver_init = OpamSolverConfig.init in
   solver_init ~solver ();
-  let compiler_set =
-    let requested =
-      OpamSolver.request ~criteria:`Default ~install:installed_package_atoms ()
-    in
-    (* Request the solver to find a solution *)
-    match OpamSolver.resolve universe requested with
-    | Success solution ->
-        (* Extract the packages from the solution *)
-        let packages = OpamSolver.all_packages solution in
-        Ok packages
-    | Conflicts conflicts ->
-        let conflicts =
-          OpamCudf.string_of_conflicts OpamPackage.Set.empty
-            (fun (name, _) ->
-              "Unable to locate package " ^ OpamPackage.Name.to_string name)
-            conflicts
-        in
 
-        Error ("Unable to resolve cross-compiler package: " ^ conflicts)
+  (* Compute the set of packages we want to rewrite as cross packages
+     We do this by computing two sets and finding the difference:
+     1. compiler_set: the cross-compiler and everything it depends upon
+     2. full_set: the full set of packages and their transitive dependencies
+     *)
+  let compiler_set =
+    resolve_package_set ~install:installed_package_atoms
+      ~with_error_message:"Unable to resolve cross-compiler package" universe
   in
   let full_set =
-    let requested =
-      OpamSolver.request ~criteria:`Default
-        ~install:(List.concat [ installed_package_atoms; package_atoms ])
-        ()
-    in
-
-    (* Request the solver to find a solution *)
-    match OpamSolver.resolve universe requested with
-    | Success solution ->
-        (* Extract the packages from the solution *)
-        let packages = OpamSolver.all_packages solution in
-        Ok packages
-    | Conflicts conflicts ->
-        let conflicts =
-          OpamCudf.string_of_conflicts OpamPackage.Set.empty
-            (fun (name, _) ->
-              "Unable to locate package " ^ OpamPackage.Name.to_string name)
-            conflicts
-        in
-        Error ("Unable to resolve packages to install: " ^ conflicts)
+    resolve_package_set
+      ~install:(List.concat [ installed_package_atoms; package_atoms ])
+      ~with_error_message:"Unable to resolve requested packages" universe
   in
   Result.both full_set compiler_set
   |> Result.map (fun (full_set, compiler_set) ->
