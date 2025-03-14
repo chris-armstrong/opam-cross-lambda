@@ -63,7 +63,7 @@ let has_dev_filter fc = has_filter "dev-setup" fc || has_filter "dev" fc
 let has_test_filter fc = has_filter "with-test" fc
 let has_doc_filter fc = has_filter "with-doc" fc
 
-let remap_depends cross_suffix depends =
+let remap_depends ~cross depends =
   depends
   |> OpamFormula.map
      @@ fun ((name, fc) : OpamTypes.name * OpamTypes.condition) ->
@@ -74,16 +74,15 @@ let remap_depends cross_suffix depends =
 
      match name_s with
      | "dune" -> Atom (name, fc)
-     | "ocaml" -> Atom (OpamPackage.Name.of_string (name_s ^ cross_suffix), fc)
+     | "ocaml" -> Atom (Cross.map_package_name cross name, fc)
      | _
        when has_build_formula fc || has_dev_formula fc || has_test_formula fc
             || has_doc_formula fc ->
          Empty
-     | _ -> Atom (OpamPackage.Name.of_string (name_s ^ cross_suffix), fc)
+     | _ -> Atom (Cross.map_package_name cross name, fc)
 
-let remap_build ~name ~cross_name (commands : OpamTypes.command list) =
+let remap_build ~name ~cross (commands : OpamTypes.command list) =
   let name_s = OpamPackage.Name.to_string name in
-  let toolchain_name = cross_name |> String.replace ~sub:"-" ~by:"_" in
   commands
   |> List.filter_map @@ fun (args, fc) ->
      if
@@ -104,17 +103,13 @@ let remap_build ~name ~cross_name (commands : OpamTypes.command list) =
              ( (CString "dune", f1) :: (CString "build", f2)
                :: (CString "-p", f3) :: (CString name_s, f4)
                :: (CString "-x", None)
-               :: (CString toolchain_name, None)
+               :: (CString (Cross.toolchain cross), None)
                :: remaining,
                fc )
          | _ -> (args, fc))
 
-let remap_name ~cross_suffix name =
-  let name_s = OpamPackage.Name.to_string name in
-  OpamPackage.Name.of_string (name_s ^ cross_suffix)
-
 let opam_file ~source_repository_name ~destination_repository_path ~package
-    ~cross_name () =
+    ~cross () =
   try
     let gt = OpamGlobalState.load `Lock_read in
     let rt = OpamRepositoryState.load `Lock_read gt in
@@ -129,29 +124,27 @@ let opam_file ~source_repository_name ~destination_repository_path ~package
     in
     let opam = file |> OpamFile.OPAM.read in
     let name = opam |> OpamFile.OPAM.name in
-    let cross_suffix = Names.cross_suffix cross_name in
     let target_depends =
-      opam |> OpamFile.OPAM.depends |> remap_depends cross_suffix
+      opam |> OpamFile.OPAM.depends |> remap_depends ~cross
     in
     let target_build =
-      opam |> OpamFile.OPAM.build |> remap_build ~name ~cross_name
+      opam |> OpamFile.OPAM.build |> remap_build ~name ~cross
     in
-    let target_name = name |> remap_name ~cross_suffix in
+    let target_name = name |> Cross.map_package_name cross in
     let opam =
       opam
       |> OpamFile.OPAM.with_depends target_depends
       |> OpamFile.OPAM.with_name target_name
       |> OpamFile.OPAM.with_build target_build
     in
-    let destination_package_name = package_name ^ cross_suffix in
+    let destination_package_name = target_name in
     let destination_package =
-      OpamPackage.create
-        (OpamPackage.Name.of_string destination_package_name)
-        (OpamPackage.version package)
+      OpamPackage.create destination_package_name (OpamPackage.version package)
     in
     let destination_package_path =
       OpamRepositoryPath.opam destination_repository_path
-        (Some destination_package_name) destination_package
+        (Some (OpamPackage.Name.to_string destination_package_name))
+        destination_package
     in
     let destination_file =
       OpamFile.make (OpamFile.filename destination_package_path)

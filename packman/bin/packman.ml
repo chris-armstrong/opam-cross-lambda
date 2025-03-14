@@ -25,10 +25,11 @@ let map_package_roots source_repository_name overlay_repository_name
     cross_template_repository_path destination_repository_path cross_name
     listed_packages =
   let open Containers.Result in
-  let base_packages = [ "ocaml-cross-" ^ cross_name ] in
+  let cross = Cross.of_string cross_name in
   let destination_repository_path =
     OpamFilename.Dir.of_string destination_repository_path
   in
+  let base_packages = [ "ocaml-cross-" ^ cross_name ] in
   match
     let* resolved_packages =
       Package_resolve.resolve
@@ -66,7 +67,7 @@ let map_package_roots source_repository_name overlay_repository_name
              (match has_template with
              | false ->
                  Remap.opam_file ~source_repository_name
-                   ~destination_repository_path ~package ~cross_name ()
+                   ~destination_repository_path ~package ~cross ()
              | true -> Ok ())
              |> map (fun () -> package_name)
              |> map_err (fun error -> (package_name, error)))
