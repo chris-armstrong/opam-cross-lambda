@@ -26,6 +26,9 @@ let map_package_roots source_repository_name overlay_repository_name
     listed_packages =
   let open Containers.Result in
   let base_packages = [ "ocaml-cross-" ^ cross_name ] in
+  let destination_repository_path =
+    OpamFilename.Dir.of_string destination_repository_path
+  in
   match
     let* resolved_packages =
       Package_resolve.resolve
@@ -63,8 +66,7 @@ let map_package_roots source_repository_name overlay_repository_name
              (match has_template with
              | false ->
                  Remap.opam_file ~source_repository_name
-                   ~destination_repository_path ~package_name ~package_version
-                   ~cross_name ()
+                   ~destination_repository_path ~package ~cross_name ()
              | true -> Ok ())
              |> map (fun () -> package_name)
              |> map_err (fun error -> (package_name, error)))
@@ -83,10 +85,7 @@ let map_package_roots source_repository_name overlay_repository_name
       (fun (package_name, error) -> Fmt.pr "  - %s: %s\n" package_name error)
       failed;
     OpamFile.Repo.create ()
-    |> OpamFile.Repo.write
-         (OpamFile.make
-            OpamFilename.Op.(
-              OpamFilename.Dir.of_string destination_repository_path // "repo"));
+    |> OpamFile.Repo.write (OpamRepositoryPath.repo destination_repository_path);
     Ok ()
   with
   | Ok _ -> ()
