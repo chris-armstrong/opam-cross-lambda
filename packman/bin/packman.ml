@@ -22,7 +22,8 @@ let pp_build fmt (args, _) =
 module Solver = Opam_0install.Solver.Make (Opam_0install.Dir_context)
 
 let map_package_roots source_repository_name overlay_repository_name
-    destination_repository_path cross_name listed_packages =
+    cross_template_repository_path destination_repository_path cross_name
+    listed_packages =
   let open Containers.Result in
   let base_packages = [ "ocaml-cross-" ^ cross_name ] in
   match
@@ -55,9 +56,16 @@ let map_package_roots source_repository_name overlay_repository_name
              let version = OpamPackage.version package in
              let package_name = OpamPackage.Name.to_string name in
              let package_version = OpamPackage.Version.to_string version in
-             Remap.opam_file ~source_repository_name
-               ~destination_repository_path ~package_name ~package_version
-               ~cross_name ()
+             let has_template =
+               Apply_cross_template.has_template ~cross_template_repository_path
+                 package
+             in
+             (match has_template with
+             | false ->
+                 Remap.opam_file ~source_repository_name
+                   ~destination_repository_path ~package_name ~package_version
+                   ~cross_name ()
+             | true -> Ok ())
              |> map (fun () -> package_name)
              |> map_err (fun error -> (package_name, error)))
       |> Seq.fold
@@ -101,25 +109,33 @@ let main () =
       & pos 1 (some string) None
       & info [] ~docv:"OVERLAY_REPOSITORY_NAME" ~doc)
   in
+  let cross_template_repository_path =
+    let doc = "path to cross-template repository" in
+    Arg.(
+      required
+      & pos 2 (some string) None
+      & info [] ~docv:"CROSS_TEMPLATE_REPOSITORY_PATH" ~doc)
+  in
   let destination_repository_path =
     let doc = "destination repository path" in
     Arg.(
       required
-      & pos 2 (some string) None
+      & pos 3 (some string) None
       & info [] ~docv:"DESTINATION_REPOSITORY_PATH" ~doc)
   in
   let cross_name =
     let doc = "The cross compiler name / toolchain name" in
-    Arg.(required & pos 3 (some string) None & info [] ~docv:"CROSS_NAME" ~doc)
+    Arg.(required & pos 4 (some string) None & info [] ~docv:"CROSS_NAME" ~doc)
   in
   let listed_packages =
     let doc = "packages to resolve" in
-    Arg.(required & pos 4 (some (list string)) (Some []) & info [] ~doc)
+    Arg.(required & pos 5 (some (list string)) (Some []) & info [] ~doc)
   in
   let map_packages_t =
     Term.(
       const map_package_roots $ source_repository_name $ overlay_repository_name
-      $ destination_repository_path $ cross_name $ listed_packages)
+      $ cross_template_repository_path $ destination_repository_path
+      $ cross_name $ listed_packages)
   in
   let map_packages_cmd =
     let doc =
