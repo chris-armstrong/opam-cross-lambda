@@ -1,1 +1,27 @@
 (lang dune 3.17)
+(package 
+(name packman)
+(synopsis "generate cross-compilation packages from an opam-repository")
+(description "packman is a tooll for generating cross-compilation packages. Cross-compilation support in opam and dune rely on packages to be named in a specific way and for their build and install commands to be rewritten to pass toolchain names. Use packman to generate these packages based on their definitions in an opam repository with their commands rewritten for common build tools like dune, topkg and ocamlbuild. It uses the opam solver to find transitive dependencies for you.")
+
+(allow_empty)
+ (authors "Chris Armstrong")
+ (maintainers "Chris Armstrong <oss@chrisarmstrong.dev>")
+ (homepage https://github.com/chris-armstrong/opam-cross-lambda)
+ (bug_reports https://github.com/chris-armstrong/opam-cross-lambda/issues)
+ (source
+  (github chris-armstrong/opam-cross-lambda))
+ (license AFGPL)
+ (depends
+  (dune
+   (>= "3.4"))
+  (ocaml
+   (>= "4.14"))
+ opam-format
+ opam-state
+ opam-solver
+ containers
+ cmdliner
+ opam-0install
+  
+ ))
