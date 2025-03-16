@@ -21,12 +21,12 @@ depends: [
   "ocaml" {= "5.3.0" & post}
 
   # General base- packages
-  "base-unix" {post}
-  "base-bigarray" {post}
-  "base-threads" {post}
-  "base-domains" {post}
-  "base-nnp" {post}
-  "base-effects" {post}
+  "base-unix-cross-aarch64-al2023" {post}
+  "base-bigarray-cross-aarch64-al2023" {post}
+  "base-threads-cross-aarch64-al2023" {post}
+  "base-domains-cross-aarch64-al2023" {post}
+  "base-nnp-cross-aarch64-al2023" {post}
+  "base-effects-cross-aarch64-al2023" {post}
 
   # Port selection (Windows)
   # amd64 mingw-w64 / MSVC
@@ -39,7 +39,7 @@ depends: [
       ("system-msvc" & "winpthreads" & "ocaml-option-no-compression" {os = "win32"}))) |
   # Non-Windows systems need to install something to satisfy this formula, so
   # repeat the base-unix dependency
-   "base-unix" {os != "win32" & post})
+   "base-unix-cross-aarch64-al2023" {os != "win32" & post})
 
   # All the 32-bit architectures are bytecode-only
   "ocaml-option-bytecode-only" {arch != "arm64" & arch != "x86_64" & arch != "s390x" & arch != "riscv64" & arch != "ppc64"}
