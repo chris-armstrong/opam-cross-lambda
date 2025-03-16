@@ -118,59 +118,45 @@ let map_base_packages source_repository_name overlay_repository_name
     ]
   in
   let listed_packages =
-    [ "base-unix"; "base-threads"; "base-bigarray"; "base-bytes" ]
+    [
+      "base-unix";
+      "base-threads";
+      "base-bigarray";
+      "base-domains";
+      "base-effects";
+      "base-nnp";
+    ]
   in
-  match
-    let* resolved_packages =
-      Package_resolve.resolve ~include_compiler_deps:false ~repositories
-        ~listed_packages ~base_packages ()
-    in
-
-    Printf.printf "Resolved packages:\n";
-    resolved_packages
-    |> OpamPackage.Set.iter (fun p ->
-           Printf.printf "  - %s\n" (OpamPackage.to_string p));
-    let packages_to_rewrite =
-      OpamPackage.Set.filter
-        (fun package ->
-          let name = OpamPackage.name package in
-          let version = OpamPackage.version package in
-          let package_name = OpamPackage.Name.to_string name in
-          let package_version = OpamPackage.Version.to_string version in
-          build_time_packages
-          |> List.exists (fun name -> String.equal package_name name)
-          |> not)
-        resolved_packages
-    in
-    let succeeded, failed =
-      packages_to_rewrite |> OpamPackage.Set.to_seq
-      |> Seq.map (fun package ->
-             let name = OpamPackage.name package in
-             let name_s = OpamPackage.Name.to_string name in
-             Remap.opam_file ~source_repository_name
-               ~destination_repository_path ~package ~cross ()
-             |> map (fun () -> name_s)
-             |> map_err (fun error -> (name_s, error)))
-      |> Seq.fold
-           (fun (succeeded, failed) res ->
-             match res with
-             | Ok package_name -> (package_name :: succeeded, failed)
-             | Error failure -> (succeeded, failure :: failed))
-           ([], [])
-    in
-    Fmt.pr "Successfully remapped packages: %a\n"
-      (Format.pp_print_list ~pp_sep:Fmt.comma Format.pp_print_string)
-      succeeded;
-    Fmt.pr "\nFailures: \n";
-    List.iter
-      (fun (package_name, error) -> Fmt.pr "  - %s: %s\n" package_name error)
-      failed;
-    OpamFile.Repo.create ()
-    |> OpamFile.Repo.write (OpamRepositoryPath.repo destination_repository_path);
-    Ok ()
-  with
-  | Ok _ -> ()
-  | Error error -> Printf.printf "Error: %s\n" error
+  let packages_to_rewrite =
+    List.map
+      (fun package -> OpamPackage.of_string (package ^ ".base"))
+      listed_packages
+  in
+  let succeeded, failed =
+    packages_to_rewrite |> List.to_seq
+    |> Seq.map (fun package ->
+           let name = OpamPackage.name package in
+           let name_s = OpamPackage.Name.to_string name in
+           Remap.opam_file ~source_repository_name ~destination_repository_path
+             ~package ~cross ()
+           |> map (fun () -> name_s)
+           |> map_err (fun error -> (name_s, error)))
+    |> Seq.fold
+         (fun (succeeded, failed) res ->
+           match res with
+           | Ok package_name -> (package_name :: succeeded, failed)
+           | Error failure -> (succeeded, failure :: failed))
+         ([], [])
+  in
+  Fmt.pr "Successfully remapped packages: %a\n"
+    (Format.pp_print_list ~pp_sep:Fmt.comma Format.pp_print_string)
+    succeeded;
+  Fmt.pr "\nFailures: \n";
+  List.iter
+    (fun (package_name, error) -> Fmt.pr "  - %s: %s\n" package_name error)
+    failed;
+  OpamFile.Repo.create ()
+  |> OpamFile.Repo.write (OpamRepositoryPath.repo destination_repository_path)
 
 (**)
 let main () =
