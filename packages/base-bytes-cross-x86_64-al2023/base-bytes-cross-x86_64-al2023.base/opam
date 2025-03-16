@@ -1,0 +1,9 @@
+opam-version: "2.0"
+synopsis: "Bytes library distributed with the OCaml compiler"
+maintainer: " "
+authors: " "
+homepage: " "
+depends: [
+  "ocaml-cross-x86_64-al2023" {>= "4.02.0"}
+  "ocamlfind-cross-x86_64-al2023" {>= "1.5.3"}
+]
