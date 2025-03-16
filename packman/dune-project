@@ -11,7 +11,7 @@
  (bug_reports https://github.com/chris-armstrong/opam-cross-lambda/issues)
  (source
   (github chris-armstrong/opam-cross-lambda))
- (license AFGPL)
+ (license GPL)
  (depends
   (dune
    (>= "3.4"))
