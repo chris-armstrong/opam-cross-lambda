@@ -119,7 +119,8 @@ let resolve_package_set ~install ~with_error_message universe =
       in
       Error (with_error_message ^ ": " ^ conflicts)
 
-let resolve ~repositories ~listed_packages ~base_packages () =
+let resolve ?(include_compiler_deps = false) ~repositories ~listed_packages
+    ~base_packages () =
   let open OpamTypes in
   let gt = OpamGlobalState.load `Lock_read in
   let rt = OpamRepositoryState.load `Lock_read gt in
@@ -164,8 +165,10 @@ let resolve ~repositories ~listed_packages ~base_packages () =
      2. full_set: the full set of packages and their transitive dependencies
      *)
   let compiler_set =
-    resolve_package_set ~install:installed_package_atoms
-      ~with_error_message:"Unable to resolve cross-compiler package" universe
+    if include_compiler_deps then Ok OpamPackage.Set.empty
+    else
+      resolve_package_set ~install:installed_package_atoms
+        ~with_error_message:"Unable to resolve cross-compiler package" universe
   in
   let full_set =
     resolve_package_set
