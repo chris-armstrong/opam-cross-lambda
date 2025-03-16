@@ -75,41 +75,149 @@ let remap_depends ~cross depends =
      match name_s with
      | "dune" -> Atom (name, fc)
      | "ocaml" -> Atom (Cross.map_package_name cross name, fc)
-     | _
-       when has_build_formula fc || has_dev_formula fc || has_test_formula fc
-            || has_doc_formula fc ->
+     | _ when has_dev_formula fc || has_test_formula fc || has_doc_formula fc ->
          Empty
+     | _ when has_build_formula fc -> Atom (name, fc)
      | _ -> Atom (Cross.map_package_name cross name, fc)
 
-let remap_build ~name ~cross (commands : OpamTypes.command list) =
-  let name_s = OpamPackage.Name.to_string name in
-  commands
-  |> List.filter_map @@ fun (args, fc) ->
-     if
-       fc
-       |> Option.map_or ~default:false @@ fun fc ->
-          has_build_filter fc || has_dev_filter fc || has_test_filter fc
-          || has_doc_filter fc
-     then None
-     else
-       let open OpamTypes in
-       Some
-         (match args with
-         | (CString "dune", f1)
-           :: (CString "build", f2)
-           :: (CString "-p", f3)
-           :: (CIdent "name", f4)
-           :: remaining ->
-             ( (CString "dune", f1) :: (CString "build", f2)
-               :: (CString "-p", f3) :: (CString name_s, f4)
-               :: (CString "-x", None)
-               :: (CString (Cross.toolchain cross), None)
-               :: remaining,
-               fc )
-         | _ ->
-             failwith
-               "Package does not have a dune-based build - create a \
-                cross-template for it")
+let remap_no_build_install ~cross:_ opam =
+  let build = OpamFile.OPAM.build opam in
+  let install = OpamFile.OPAM.install opam in
+  match List.length build = 0 && List.length install = 0 with
+  | true -> Some opam
+  | false -> None
+
+let remap_dune_install ~cross opam =
+  let remap_build ~name ~cross (commands : OpamTypes.command list) =
+    let name_s = OpamPackage.Name.to_string name in
+    commands
+    |> List.filter_map @@ fun (args, fc) ->
+       if
+         fc
+         |> Option.map_or ~default:false @@ fun fc ->
+            has_build_filter fc || has_dev_filter fc || has_test_filter fc
+            || has_doc_filter fc
+       then None
+       else
+         let open OpamTypes in
+         Some
+           (match args with
+           (* dune, in its standard incantation when generated from dune-project files *)
+           | (CString "dune", f1)
+             :: (CString "build", f2)
+             :: (CString "-p", f3)
+             :: (CIdent "name", f4)
+             :: remaining ->
+               ( (CString "dune", f1) :: (CString "build", f2)
+                 :: (CString "-p", f3) :: (CString name_s, f4)
+                 :: (CString "-x", None)
+                 :: (CString (Cross.toolchain cross), None)
+                 :: remaining,
+                 fc )
+           | _ ->
+               failwith
+                 "Package does not have a detectable dune-based build - create \
+                  a cross-template for it")
+  in
+
+  match
+    opam |> OpamFile.OPAM.depends
+    |> OpamFormula.exists (fun (name, _) ->
+           String.equal (OpamPackage.Name.to_string name) "dune")
+  with
+  | true ->
+      let name = opam |> OpamFile.OPAM.name in
+      let target_depends =
+        opam |> OpamFile.OPAM.depends |> remap_depends ~cross
+      in
+      let target_build =
+        opam |> OpamFile.OPAM.build |> remap_build ~name ~cross
+      in
+      let opam =
+        opam
+        |> OpamFile.OPAM.with_depends target_depends
+        |> OpamFile.OPAM.with_build target_build
+      in
+      Some opam
+  | false -> None
+
+let remap_topkg_install ~cross opam =
+  let remap_build ~name ~cross (commands : OpamTypes.command list) =
+    let name_s = OpamPackage.Name.to_string name in
+    commands
+    |> List.filter_map @@ fun (args, fc) ->
+       if
+         fc
+         |> Option.map_or ~default:false @@ fun fc ->
+            has_build_filter fc || has_dev_filter fc || has_test_filter fc
+            || has_doc_filter fc
+       then None
+       else
+         let open OpamTypes in
+         Some
+           (match args with
+           (* topkg - used by the prolific erratique.ch who maintains several key OCaml libraries, but now deprecated *)
+           | (CString "ocaml", f1)
+             :: (CString "pkg/pkg.ml", f2)
+             :: (CString "build", f3)
+             :: remaining ->
+               ( (CString "ocaml", f1) :: (CString "pkg/pkg.ml", f2)
+                 :: (CString "build", f3)
+                 :: (CString "--toolchain", None)
+                 :: (CString (Cross.toolchain cross), None)
+                 :: (CString "--pkg-name", None)
+                 :: (CString name_s, None) :: remaining,
+                 fc )
+           | _ ->
+               failwith
+                 "Package does not have a detectable topkg-based build - \
+                  create a cross-template for it")
+  in
+  let remap_install ~name ~cross install =
+    let name_s = OpamPackage.Name.to_string name in
+    let open OpamTypes in
+    if List.length install > 0 then
+      failwith
+        "Install commands already present for a topkg-based package install - \
+         unable to remap";
+    [
+      ( [
+          (CString "opam-installer", None);
+          ( CString ("--prefix=%{prefix}%/" ^ Cross.toolchain cross ^ "-sysroot"),
+            None );
+          (CString (name_s ^ ".install"), None);
+        ],
+        None );
+    ]
+  in
+  match
+    opam |> OpamFile.OPAM.depends
+    |> OpamFormula.exists (fun (name, _) ->
+           String.equal (OpamPackage.Name.to_string name) "topkg")
+  with
+  | true ->
+      let name = opam |> OpamFile.OPAM.name in
+      let target_build =
+        opam |> OpamFile.OPAM.build |> remap_build ~name ~cross
+      in
+      let target_install =
+        opam |> OpamFile.OPAM.install |> remap_install ~name ~cross
+      in
+      let depends = opam |> OpamFile.OPAM.depends in
+      let extra_depends =
+        OpamFormula.Atom
+          ( OpamPackage.Name.of_string "opam-installer",
+            OpamFormula.Atom OpamTypes.(Constraint (`Geq, FString "2.0.0")) )
+      in
+      let opam =
+        opam
+        |> OpamFile.OPAM.with_build target_build
+        |> OpamFile.OPAM.with_install target_install
+        |> OpamFile.OPAM.with_depends
+             (OpamFormula.ands [ depends; extra_depends ])
+      in
+      Some opam
+  | false -> None
 
 let opam_file ~source_repository_name ~destination_repository_path ~package
     ~cross () =
@@ -126,19 +234,22 @@ let opam_file ~source_repository_name ~destination_repository_path ~package
       OpamRepositoryPath.opam source_repository_path (Some package_name) package
     in
     let opam = file |> OpamFile.OPAM.read in
-    let name = opam |> OpamFile.OPAM.name in
+    let name = OpamFile.OPAM.name opam in
+    let target_name = name |> Cross.map_package_name cross in
     let target_depends =
       opam |> OpamFile.OPAM.depends |> remap_depends ~cross
     in
-    let target_build =
-      opam |> OpamFile.OPAM.build |> remap_build ~name ~cross
+    let opam =
+      [ remap_no_build_install; remap_dune_install; remap_topkg_install ]
+      |> List.find_map (fun remapper -> remapper ~cross opam)
+      |> Option.get_exn_or "Unknown build system used in opam file"
     in
-    let target_name = name |> Cross.map_package_name cross in
+    (* remap the name and dependencies last so that the remappers have access
+       to the original name and dependencies *)
     let opam =
       opam
       |> OpamFile.OPAM.with_depends target_depends
       |> OpamFile.OPAM.with_name target_name
-      |> OpamFile.OPAM.with_build target_build
     in
     let destination_package_name = target_name in
     let destination_package =
