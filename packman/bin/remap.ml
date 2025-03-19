@@ -1,4 +1,33 @@
+[@@@warning "-27"]
+
 open Containers
+
+let filtered_formula_of_package ?var_constraint ~name ~version () =
+  let open OpamTypes in
+  let open OpamFormula in
+  (* Define the package name and version constraint *)
+  let package_name = OpamPackage.Name.of_string name in
+  let version = OpamTypes.FString version in
+  let version_constraint = Constraint (`Geq, version) in
+
+  (* Create a condition using the version constraint *)
+  let condition =
+    match var_constraint with
+    | Some var_name ->
+        And
+          ( Atom version_constraint,
+            Atom
+              (Filter
+                 (OpamTypes.FIdent ([], OpamVariable.of_string var_name, None)))
+          )
+    | None -> Atom version_constraint
+  in
+
+  (* Construct the filtered formula using the package name and condition *)
+  let filtered_formula : OpamTypes.filtered_formula =
+    Atom (package_name, condition)
+  in
+  filtered_formula
 
 let string_of_constraint =
   let open OpamTypes in
@@ -156,7 +185,7 @@ let remap_topkg_install ~cross opam =
          let open OpamTypes in
          Some
            (match args with
-           (* topkg - used by the prolific erratique.ch who maintains several key OCaml libraries, but now deprecated *)
+           (* topkg - used by the prolific erratique.ch who maintains several key OCaml libraries. topkg is now deprecated for new packages but remains in use for these existing packages. *)
            | (CString "ocaml", f1)
              :: (CString "pkg/pkg.ml", f2)
              :: (CString "build", f3)
@@ -190,6 +219,24 @@ let remap_topkg_install ~cross opam =
         None );
     ]
   in
+  let remap_remove ~name ~cross remove =
+    let open OpamTypes in
+    let name_s = OpamPackage.Name.to_string name in
+    if List.length remove > 0 then
+      failwith
+        "Remove commands already present for a topkg-based package install - \
+         unable to remap";
+    [
+      ( [
+          (CString "ocamlfind", None);
+          (CString "-toolchain", None);
+          (CString (Cross.toolchain cross), None);
+          (CString "remove", None);
+          (CString (name_s ^ ".install"), None);
+        ],
+        None );
+    ]
+  in
   match
     opam |> OpamFile.OPAM.depends
     |> OpamFormula.exists (fun (name, _) ->
@@ -203,21 +250,67 @@ let remap_topkg_install ~cross opam =
       let target_install =
         opam |> OpamFile.OPAM.install |> remap_install ~name ~cross
       in
-      let depends = opam |> OpamFile.OPAM.depends in
-      let extra_depends =
-        OpamFormula.Atom
-          ( OpamPackage.Name.of_string "opam-installer",
-            OpamFormula.Atom OpamTypes.(Constraint (`Geq, FString "2.0.0")) )
+      let target_remove =
+        opam |> OpamFile.OPAM.remove |> remap_remove ~name ~cross
       in
+      let extra_depends =
+        filtered_formula_of_package ~name:"opam-installer" ~version:"2.0.0"
+          ~var_constraint:"build" ()
+      in
+      let depends_list = opam |> OpamFile.OPAM.depends in
       let opam =
         opam
         |> OpamFile.OPAM.with_build target_build
         |> OpamFile.OPAM.with_install target_install
+        |> OpamFile.OPAM.with_remove target_remove
         |> OpamFile.OPAM.with_depends
-             (OpamFormula.ands [ depends; extra_depends ])
+             (OpamFormula.And (depends_list, extra_depends))
       in
       Some opam
   | false -> None
+
+let remap_package_variables_in_commands ~cross commands =
+  let open OpamTypes in
+  let remap_package_variables s =
+    let available_package_variables =
+      [
+        "name";
+        "version";
+        "depends";
+        "installed";
+        "enable";
+        "pinned";
+        "bin";
+        "sbin";
+        "lib";
+        "man";
+        "doc";
+        "share";
+        "build";
+        "hash";
+        "dev";
+        "build-id";
+        "opamfile";
+      ]
+    in
+    Opam_helpers.map_variables s @@ fun (var_name, package_name) ->
+    match List.exists (String.equal var_name) available_package_variables with
+    | true ->
+        ( var_name,
+          Cross.map_package_name cross (OpamPackage.Name.of_string package_name)
+          |> OpamPackage.Name.to_string )
+    | false -> (var_name, package_name)
+  in
+  commands
+  |> List.map @@ fun ((args, fc) : OpamTypes.command) ->
+     let args =
+       args
+       |> List.map @@ fun (arg, fc2) ->
+          match arg with
+          | CString s -> (CString (remap_package_variables s), fc2)
+          | _ -> (arg, fc2)
+     in
+     (args, fc)
 
 let opam_file ~source_repository_name ~destination_repository_path ~package
     ~cross () =
@@ -239,6 +332,7 @@ let opam_file ~source_repository_name ~destination_repository_path ~package
     let target_depends =
       opam |> OpamFile.OPAM.depends |> remap_depends ~cross
     in
+    let opam = opam |> OpamFile.OPAM.with_depends target_depends in
     let opam =
       [ remap_no_build_install; remap_dune_install; remap_topkg_install ]
       |> List.find_map (fun remapper -> remapper ~cross opam)
@@ -248,8 +342,13 @@ let opam_file ~source_repository_name ~destination_repository_path ~package
        to the original name and dependencies *)
     let opam =
       opam
-      |> OpamFile.OPAM.with_depends target_depends
       |> OpamFile.OPAM.with_name target_name
+      |> OpamFile.OPAM.with_install
+           (OpamFile.OPAM.install opam
+           |> remap_package_variables_in_commands ~cross)
+      |> OpamFile.OPAM.with_build
+           (OpamFile.OPAM.build opam
+           |> remap_package_variables_in_commands ~cross)
     in
     let destination_package_name = target_name in
     let destination_package =

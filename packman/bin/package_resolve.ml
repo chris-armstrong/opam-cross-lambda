@@ -21,7 +21,13 @@ module CustomOpamSolver = struct
     let univ_gen =
       OpamSolver.load_cudf_universe universe ~version_map all_packages
     in
-    let cudf_universe = univ_gen ~depopts:false ~build:false ~post:true () in
+    (* OpamSolver.resolve normally sets these to ~depopts:false ~build:true ~post:true,
+       but we:
+       - want to exclude build-time dependencies because they don't need remapping for cross
+       - want to include depopts as they are candidates for remapping even if the developer
+         does not request them
+    *)
+    let cudf_universe = univ_gen ~depopts:true ~build:false ~post:true () in
 
     let requested_names =
       OpamPackage.Name.Set.of_list (List.map fst request.wish_all)
