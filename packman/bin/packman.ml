@@ -5,10 +5,6 @@
 
 open Containers
 
-let source_repository_path = Array.get Sys.argv 1
-let destination_repository_path = Array.get Sys.argv 2
-let cross_name = Array.get Sys.argv 3
-
 let pp_arg fmt (arg, _) =
   match arg with
   | OpamTypes.CString x -> Format.fprintf fmt "\"%s\"" x
@@ -50,6 +46,7 @@ let map_package_roots source_repository_name overlay_repository_name
     resolved_packages
     |> OpamPackage.Set.iter (fun p ->
            Printf.printf "  - %s\n" (OpamPackage.to_string p));
+    Printf.printf "\n";
     let packages_to_rewrite =
       OpamPackage.Set.filter
         (fun package ->

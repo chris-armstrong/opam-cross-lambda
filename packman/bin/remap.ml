@@ -109,11 +109,16 @@ let remap_depends ~cross depends =
      | _ when has_build_formula fc -> Atom (name, fc)
      | _ -> Atom (Cross.map_package_name cross name, fc)
 
-let remap_no_build_install ~cross:_ opam =
+let remap_no_build_install ~cross opam =
   let build = OpamFile.OPAM.build opam in
   let install = OpamFile.OPAM.install opam in
   match List.length build = 0 && List.length install = 0 with
-  | true -> Some opam
+  | true ->
+      let target_depends =
+        opam |> OpamFile.OPAM.depends |> remap_depends ~cross
+      in
+      let opam = opam |> OpamFile.OPAM.with_depends target_depends in
+      Some opam
   | false -> None
 
 let remap_dune_install ~cross opam =
@@ -326,13 +331,14 @@ let opam_file ~source_repository_name ~destination_repository_path ~package
     let file =
       OpamRepositoryPath.opam source_repository_path (Some package_name) package
     in
+    Printf.printf "opam_file: remapping %s\n" (OpamFile.to_string file);
     let opam = file |> OpamFile.OPAM.read in
     let name = OpamFile.OPAM.name opam in
     let target_name = name |> Cross.map_package_name cross in
-    let target_depends =
-      opam |> OpamFile.OPAM.depends |> remap_depends ~cross
-    in
-    let opam = opam |> OpamFile.OPAM.with_depends target_depends in
+    (* let target_depends = *)
+    (*   opam |> OpamFile.OPAM.depends |> remap_depends ~cross *)
+    (* in *)
+    (* let opam = opam |> OpamFile.OPAM.with_depends target_depends in *)
     let opam =
       [ remap_no_build_install; remap_dune_install; remap_topkg_install ]
       |> List.find_map (fun remapper -> remapper ~cross opam)
@@ -362,6 +368,8 @@ let opam_file ~source_repository_name ~destination_repository_path ~package
     let destination_file =
       OpamFile.make (OpamFile.filename destination_package_path)
     in
+    Printf.printf "opam_file: writing to %s\n"
+      (OpamFile.to_string destination_file);
     OpamFile.OPAM.write destination_file opam;
     Ok ()
   with
