@@ -9,4 +9,4 @@ let toolchain x = String.replace ~sub:"-" ~by:"_" x.cross_name
 
 let map_package_name cross package_name =
   OpamPackage.Name.of_string
-    (OpamPackage.Name.to_string package_name ^ "-cross-" ^ cross.cross_name)
+    (OpamPackage.Name.to_string package_name ^ "-" ^ cross.cross_name)

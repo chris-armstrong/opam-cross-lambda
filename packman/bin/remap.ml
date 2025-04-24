@@ -102,7 +102,7 @@ let remap_depends ~cross depends =
      let name_s = OpamPackage.Name.to_string name in
 
      match name_s with
-     | "dune" -> Atom (name, fc)
+     | "dune" | "dune-configurator" -> Atom (name, fc)
      | "ocaml" -> Atom (Cross.map_package_name cross name, fc)
      | _ when has_dev_formula fc || has_test_formula fc || has_doc_formula fc ->
          Empty
@@ -161,15 +161,15 @@ let remap_dune_install ~cross opam =
   with
   | true ->
       let name = opam |> OpamFile.OPAM.name in
-      let target_depends =
-        opam |> OpamFile.OPAM.depends |> remap_depends ~cross
-      in
+      (* let target_depends = *)
+      (*   opam |> OpamFile.OPAM.depends |> remap_depends ~cross *)
+      (* in *)
       let target_build =
         opam |> OpamFile.OPAM.build |> remap_build ~name ~cross
       in
       let opam =
         opam
-        |> OpamFile.OPAM.with_depends target_depends
+        (* |> OpamFile.OPAM.with_depends target_depends *)
         |> OpamFile.OPAM.with_build target_build
       in
       Some opam
@@ -335,10 +335,10 @@ let opam_file ~source_repository_name ~destination_repository_path ~package
     let opam = file |> OpamFile.OPAM.read in
     let name = OpamFile.OPAM.name opam in
     let target_name = name |> Cross.map_package_name cross in
-    (* let target_depends = *)
-    (*   opam |> OpamFile.OPAM.depends |> remap_depends ~cross *)
-    (* in *)
-    (* let opam = opam |> OpamFile.OPAM.with_depends target_depends in *)
+    let target_depends =
+      opam |> OpamFile.OPAM.depends |> remap_depends ~cross
+    in
+    let opam = opam |> OpamFile.OPAM.with_depends target_depends in
     let opam =
       [ remap_no_build_install; remap_dune_install; remap_topkg_install ]
       |> List.find_map (fun remapper -> remapper ~cross opam)
