@@ -114,10 +114,11 @@ let remap_no_build_install ~cross opam =
   let install = OpamFile.OPAM.install opam in
   match List.length build = 0 && List.length install = 0 with
   | true ->
-      let target_depends =
-        opam |> OpamFile.OPAM.depends |> remap_depends ~cross
-      in
-      let opam = opam |> OpamFile.OPAM.with_depends target_depends in
+      Format.printf "using remap_no_build_install\n";
+      (* let target_depends = *)
+      (*   opam |> OpamFile.OPAM.depends |> remap_depends ~cross *)
+      (* in *)
+      (* let opam = opam |> OpamFile.OPAM.with_depends target_depends in *)
       Some opam
   | false -> None
 
@@ -134,6 +135,7 @@ let remap_dune_install ~cross opam =
        then None
        else
          let open OpamTypes in
+         Format.printf "using remap_dune_install\n";
          Some
            (match args with
            (* dune, in its standard incantation when generated from dune-project files *)
@@ -188,6 +190,7 @@ let remap_topkg_install ~cross opam =
        then None
        else
          let open OpamTypes in
+         Format.printf "using remap_topkg_install\n";
          Some
            (match args with
            (* topkg - used by the prolific erratique.ch who maintains several key OCaml libraries. topkg is now deprecated for new packages but remains in use for these existing packages. *)
@@ -237,7 +240,7 @@ let remap_topkg_install ~cross opam =
           (CString "-toolchain", None);
           (CString (Cross.toolchain cross), None);
           (CString "remove", None);
-          (CString (name_s ^ ".install"), None);
+          (CString name_s, None);
         ],
         None );
     ]
