@@ -5,6 +5,19 @@
 
 open Containers
 
+let setup_log style_renderer level =
+  Fmt_tty.setup_std_outputs ?style_renderer ();
+  Logs.set_level level;
+  Logs.set_reporter (Logs_fmt.reporter ())
+
+module Logs =
+  (val Logs.src_log
+         (Logs.Src.create
+            ~doc:
+              "Packman utility for building cross-compile version of an opam \
+               file"
+            "Packman"))
+
 let pp_arg fmt (arg, _) =
   match arg with
   | OpamTypes.CString x -> Format.fprintf fmt "\"%s\"" x
@@ -17,12 +30,21 @@ let pp_build fmt (args, _) =
 
 module Solver = Opam_0install.Solver.Make (Opam_0install.Dir_context)
 
-let build_time_packages = [ "dune"; "ocamlbuild"; "ocamlfind" ]
+let build_time_packages =
+  [ "dune"; "ocamlbuild"; "ocamlfind"; "dune-configurator" ]
 
-let map_package_roots source_repository_name overlay_repository_name
+let map_package_roots _ source_repository_name overlay_repository_name
     cross_template_repository_path destination_repository_path cross_name
     listed_packages =
   let open Containers.Result in
+  Logs.debug (fun m ->
+      m
+        "map_package_roots: source_repository_name=%s \
+         overlay_repository_name=%s cross_template_repository_path=%s \
+         destination_repository_path=%s cross_name=%s listed_packages=%a"
+        source_repository_name overlay_repository_name
+        cross_template_repository_path destination_repository_path cross_name
+        (Format.list Fmt.string) listed_packages);
   let cross = Cross.of_string cross_name in
   let destination_repository_path =
     OpamFilename.Dir.of_string destination_repository_path
@@ -42,11 +64,11 @@ let map_package_roots source_repository_name overlay_repository_name
       Package_resolve.resolve ~repositories ~listed_packages ~base_packages ()
     in
 
-    Printf.printf "Resolved packages:\n";
-    resolved_packages
-    |> OpamPackage.Set.iter (fun p ->
-           Printf.printf "  - %s\n" (OpamPackage.to_string p));
-    Printf.printf "\n";
+    Logs.info (fun m ->
+        m "map_package_roots: resolved packages: %a"
+          (Format.pp_print_list ~pp_sep:Fmt.comma
+             (Fmt.of_to_string OpamPackage.to_string))
+          (resolved_packages |> OpamPackage.Set.to_list));
     let packages_to_rewrite =
       OpamPackage.Set.filter
         (fun package ->
@@ -64,15 +86,20 @@ let map_package_roots source_repository_name overlay_repository_name
       |> Seq.map (fun package ->
              let name = OpamPackage.name package in
              let name_s = OpamPackage.Name.to_string name in
-             let has_template =
-               Apply_cross_template.has_template ~cross_template_repository_path
-                 package
-             in
-             (match has_template with
-             | false ->
-                 Remap.opam_file ~source_repository_name
-                   ~destination_repository_path ~package ~cross ()
-             | true -> Ok ())
+             (let has_template =
+                Apply_cross_template.has_template
+                  ~cross_template_repository_path package
+              in
+              Logs.info (fun m ->
+                  m "map_package_roots: package %s %s template" name_s
+                    (if has_template then "has" else "does not have"));
+              if has_template then
+                Apply_cross_template.apply_cross_template
+                  ~cross_template_repository_path ~destination_repository_path
+                  ~cross package
+              else
+                Remap.opam_file ~source_repository_name
+                  ~destination_repository_path ~package ~cross ())
              |> map (fun () -> name_s)
              |> map_err (fun error -> (name_s, error)))
       |> Seq.fold
@@ -97,7 +124,7 @@ let map_package_roots source_repository_name overlay_repository_name
   | Error error -> Printf.printf "Error: %s\n" error
 
 (** Map the base compiler packages into destination repository *)
-let map_base_packages source_repository_name overlay_repository_name
+let map_base_packages _ source_repository_name overlay_repository_name
     destination_repository_path cross_name =
   let open Containers.Result in
   let cross = Cross.of_string cross_name in
@@ -158,6 +185,11 @@ let map_base_packages source_repository_name overlay_repository_name
 (**)
 let main () =
   let open Cmdliner in
+  let setup_log =
+    let env = Cmd.Env.info "PACKMAN_LOG_LEVEL" ~doc:"Set the log level" in
+    Term.(const setup_log $ Fmt_cli.style_renderer () $ Logs_cli.level ~env ())
+  in
+
   let map_packages_t =
     let source_repository_name =
       let doc = "source repository name" in
@@ -194,12 +226,12 @@ let main () =
     in
     let listed_packages =
       let doc = "packages to resolve" in
-      Arg.(required & pos 5 (some (list string)) (Some []) & info [] ~doc)
+      Arg.(value & pos_right 4 string [] & info [] ~doc)
     in
     Term.(
-      const map_package_roots $ source_repository_name $ overlay_repository_name
-      $ cross_template_repository_path $ destination_repository_path
-      $ cross_name $ listed_packages)
+      const map_package_roots $ setup_log $ source_repository_name
+      $ overlay_repository_name $ cross_template_repository_path
+      $ destination_repository_path $ cross_name $ listed_packages)
   in
   let map_base_packages_t =
     let source_repository_name =
@@ -229,8 +261,8 @@ let main () =
         required & pos 3 (some string) None & info [] ~docv:"CROSS_NAME" ~doc)
     in
     Term.(
-      const map_base_packages $ source_repository_name $ overlay_repository_name
-      $ destination_repository_path $ cross_name)
+      const map_base_packages $ setup_log $ source_repository_name
+      $ overlay_repository_name $ destination_repository_path $ cross_name)
   in
   let map_packages_cmd =
     let doc =
@@ -256,7 +288,9 @@ let main () =
     Cmd.info "packman" ~version:"%%VERSION%%" ~doc ~man
   in
 
-  let g = Cmdliner.Cmd.group info [ map_packages_cmd; map_base_packages_cmd ] in
+  let g =
+    Cmdliner.Cmd.group info @@ [ map_packages_cmd; map_base_packages_cmd ]
+  in
   exit (Cmd.eval g)
 
 let () = main ()

@@ -5,6 +5,7 @@ type t = { cross_name : string }
 let name x = x.cross_name
 let of_string cross_name = { cross_name }
 let to_string = name
+let pp fmt x = Fmt.pf fmt "%s" x.cross_name
 let toolchain x = String.replace ~sub:"-" ~by:"_" x.cross_name
 
 let map_package_name cross package_name =

@@ -24,4 +24,7 @@
   containers
   cmdliner
   opam-0install
-  re))
+  fmt
+  fileutils
+  logs
+  ))

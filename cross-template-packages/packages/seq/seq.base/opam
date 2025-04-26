@@ -4,7 +4,7 @@ authors: " "
 homepage: " "
 depends: [
   "ocaml" 
-  "ocaml-cross-%{cross_name}%" {>= "4.07.0"}
+  "ocaml-%{cross_name}%" {>= "4.07.0"}
 ]
 dev-repo: "git+https://github.com/ocaml/ocaml.git"
 bug-reports: "https://caml.inria.fr/mantis/main_page.php"
