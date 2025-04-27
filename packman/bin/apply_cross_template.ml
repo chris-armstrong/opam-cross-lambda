@@ -59,6 +59,8 @@ let apply_cross_template ~cross_template_repository_path
     Ok
       (let opam_source = OpamFile.OPAM.read template_path in
        let extra_files = OpamFile.OPAM.extra_files opam_source in
+       FileUtil.mkdir ~parent:true
+         (destination_package_path |> OpamFilename.Dir.to_string);
        let destination_string =
          template_path |> OpamFile.to_string |> In_channel.open_bin
          |> IO.read_all
