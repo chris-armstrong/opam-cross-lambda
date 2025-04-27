@@ -1,0 +1,25 @@
+opam-version: "2.0"
+maintainer: "David Sheets <sheets@alum.mit.edu>"
+authors: ["The OpenSSL Project"]
+bug-reports: "https://github.com/ocaml/opam-repository/issues"
+homepage: "https://www.openssl.org/"
+license: "Apache-1.0"
+build: [
+  ["./Configure" "--prefix=%{prefix}%/aarch64_al2023-sysroot" "CC=aarch64_al2023-target-cc" "AR=aarch64_al2023-target-ar"
+   "linux-aarch64"
+  ]
+  ["make" "-j" jobs "build_sw"]
+]
+install: [
+  ["make" "install_sw"]
+]
+synopsis: "Virtual package relying on an OpenSSL library system installation"
+description:
+  "This package can only install if the OpenSSL library is installed on the system."
+url {
+  src:
+    "https://github.com/openssl/openssl/releases/download/openssl-3.0.16/openssl-3.0.16.tar.gz"
+  checksum: [
+    "sha256=57e03c50feab5d31b152af2b764f10379aecd8ee92f16c985983ce4a99f7ef86"
+  ]
+}
