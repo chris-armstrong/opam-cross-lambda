@@ -63,7 +63,7 @@ build: [
   [ "sh" "-x" "./build.sh" 
     "-p" "%{prefix}%/x86_64_al2023-sysroot" 
     "-o" "%{prefix}%"
-    "-c" "x86_64-al2023"
+    "-c" "x86_64_al2023"
     "-t" "x86_64-linux-gnu" # ocaml target triple 
     "-j" "%{jobs}%" 
     "-z" "%{conf-zig-wrapper-cross-x86_64-al2023:zig_path}%"

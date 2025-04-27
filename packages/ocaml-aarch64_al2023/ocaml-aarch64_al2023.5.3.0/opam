@@ -63,7 +63,7 @@ build: [
   [ "sh" "-x" "./build.sh" 
     "-p" "%{prefix}%/aarch64_al2023-sysroot" 
     "-o" "%{prefix}%"
-    "-c" "aarch64-al2023" # zig target triple (can differ from gnu variants)
+    "-c" "aarch64_al2023" # zig target triple (can differ from gnu variants)
     "-t" "aarch64-linux-gnu" # ocaml target triple 
     "-j" "%{jobs}%" 
     "-z" "%{conf-zig-wrapper-cross-aarch64-al2023:zig_path}%"
