@@ -1,0 +1,3 @@
+(executable
+  (name eio_fiber_test)
+  (libraries eio eio_main eio_linux))
