@@ -1,14 +1,14 @@
 opam-version: "2.0"
 maintainer: "hello@chrisarmstrong.dev"
 build: [
-  ["bash" "build.sh" "cross-aarch64-al2023" "aarch64" "linux"]
+  ["bash" "build.sh" "cross-aarch64_al2023" "linux""aarch64"]
 ]
 install: [
   ["bash" "install.sh" "%{prefix}%" "aarch64_al2023" "aarch64-linux-gnu.2.34"]
 ]
 extra-files: [
   [ "build.sh" "sha256=39c98ff532a6dc055455f13cb9fad9904e9bf93bf76de82b339fd2fdc85bfe34"]
-  [ "install.sh" "sha256=c9a529e37639ec28de28c1fe74a39c278b0bf4a29317663f2bd7a66aa6907856" ]
+  [ "install.sh" "sha256=b843d917e5daa828d647b2d124f5cbc6b252b67234b35a30939d8bcf18ae2eee" ]
 ]
 synopsis:
   "Virtual package specifying ocaml-cross zig wrapper utilities configuration"

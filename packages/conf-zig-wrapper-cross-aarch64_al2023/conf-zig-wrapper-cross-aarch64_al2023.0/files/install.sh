@@ -64,7 +64,7 @@ EOF
 mkdir -p "${PREFIX}/bin"
 
 zig_cc_wrapper="${PREFIX}/bin/$CROSS_NAME-target-cc"
-make_wrapper "$zig_cc_wrapper" "${ZIG} cc -target ${HOST_TARGET}"
+make_wrapper "$zig_cc_wrapper" "${ZIG} cc -target ${HOST_TARGET} -I${PREFIX}/${CROSS_NAME}-sysroot/include -L${PREFIX}/${CROSS_NAME}-sysroot/lib"
 make_windows_cmd_wrapper "$zig_cc_wrapper"
 
 zig_aspp_wrapper="${PREFIX}/bin/$CROSS_NAME-target-aspp"

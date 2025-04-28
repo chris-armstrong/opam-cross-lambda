@@ -5,8 +5,8 @@ bug-reports: "https://github.com/ocaml/opam-repository/issues"
 homepage: "https://www.openssl.org/"
 license: "Apache-1.0"
 build: [
-  ["./Configure" "--prefix=%{prefix}%/aarch64_al2023-sysroot" "CC=aarch64_al2023-target-cc" "AR=aarch64_al2023-target-ar"
-   "linux-aarch64"
+  ["./Configure" "--prefix=%{prefix}%/%{cross_name}%-sysroot" "CC=%{cross_name}%-target-cc" "AR=%{cross_name}%-target-ar"
+   "%{conf-zig-wrapper-cross-%{cross_name}%:target_os}%-%{conf-zig-wrapper-cross-%{cross_name}%:target_arch}%"
   ]
   ["make" "-j" jobs "build_sw"]
 ]
