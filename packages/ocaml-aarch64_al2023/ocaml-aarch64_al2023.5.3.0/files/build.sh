@@ -282,6 +282,8 @@ zig_native="$ZIG"
   "MIN64CC=${CROSS_NAME}-target-cc" \
   "PARTIALLD=${CROSS_NAME}-target-cc -r " \
   "LD=${CROSS_NAME}-target-cc" \
+  "CFLAGS=-I${PREFIX}/include " \
+  "LDFLAGS=-L${PREFIX}/lib " \
   "LN=${ln_use}" || { echo " --- configure failed!"; cat config.log; exit 1; }
 
 # Set up sak compiler
