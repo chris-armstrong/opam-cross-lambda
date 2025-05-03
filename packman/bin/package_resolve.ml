@@ -184,3 +184,10 @@ let resolve ?(include_compiler_deps = false) ~repositories ~listed_packages
   Result.both full_set compiler_set
   |> Result.map (fun (full_set, compiler_set) ->
          OpamPackage.Set.diff full_set compiler_set)
+
+let get_packages_for_repo repo_name =
+  let gt = OpamGlobalState.load `Lock_read in
+  let rt = OpamRepositoryState.load `Lock_read gt in
+  let repo_root = OpamRepositoryState.get_root rt repo_name in
+  let packages = OpamRepository.packages repo_root in
+  packages

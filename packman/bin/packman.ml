@@ -31,7 +31,14 @@ let pp_build fmt (args, _) =
 module Solver = Opam_0install.Solver.Make (Opam_0install.Dir_context)
 
 let build_time_packages =
-  [ "dune"; "ocamlbuild"; "ocamlfind"; "dune-configurator" ]
+  [
+    "dune";
+    "ocamlbuild";
+    "ocamlfind";
+    "dune-configurator";
+    "ppx_deriving";
+    "ppxlib";
+  ]
 
 let map_package_roots _ source_repository_name overlay_repository_name
     cross_template_repository_path destination_repository_path cross_name
@@ -60,6 +67,10 @@ let map_package_roots _ source_repository_name overlay_repository_name
     ]
   in
   match
+    let overlay_repository_packages =
+      Package_resolve.get_packages_for_repo
+        (OpamRepositoryName.of_string overlay_repository_name)
+    in
     let* resolved_packages =
       Package_resolve.resolve ~repositories ~listed_packages ~base_packages ()
     in
@@ -76,9 +87,21 @@ let map_package_roots _ source_repository_name overlay_repository_name
           let version = OpamPackage.version package in
           let package_name = OpamPackage.Name.to_string name in
           let package_version = OpamPackage.Version.to_string version in
-          build_time_packages
-          |> List.exists (fun name -> String.equal package_name name)
-          |> not)
+          let cross_package =
+            OpamPackage.create (Cross.map_package_name cross name) version
+          in
+          let not_build_time =
+            build_time_packages
+            |> List.exists (fun name -> String.equal package_name name)
+            |> not
+          in
+          let not_overlay =
+            overlay_repository_packages
+            |> OpamPackage.Set.exists (fun op ->
+                   OpamPackage.equal op cross_package)
+            |> not
+          in
+          not_overlay && not_build_time)
         resolved_packages
     in
     let succeeded, failed =

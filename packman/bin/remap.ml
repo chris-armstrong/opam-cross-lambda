@@ -227,24 +227,24 @@ let remap_topkg_install ~cross opam =
         None );
     ]
   in
-  let remap_remove ~name ~cross remove =
-    let open OpamTypes in
-    let name_s = OpamPackage.Name.to_string name in
-    if List.length remove > 0 then
-      failwith
-        "Remove commands already present for a topkg-based package install - \
-         unable to remap";
-    [
-      ( [
-          (CString "ocamlfind", None);
-          (CString "-toolchain", None);
-          (CString (Cross.toolchain cross), None);
-          (CString "remove", None);
-          (CString name_s, None);
-        ],
-        None );
-    ]
-  in
+  (* let remap_remove ~name ~cross remove = *)
+  (*   let open OpamTypes in *)
+  (*   let name_s = OpamPackage.Name.to_string name in *)
+  (*   if List.length remove > 0 then *)
+  (*     failwith *)
+  (*       "Remove commands already present for a topkg-based package install - \ *)
+  (*        unable to remap"; *)
+  (*   [ *)
+  (*     ( [ *)
+  (*         (CString "ocamlfind", None); *)
+  (*         (CString "-toolchain", None); *)
+  (*         (CString (Cross.toolchain cross), None); *)
+  (*         (CString "remove", None); *)
+  (*         (CString name_s, None); *)
+  (*       ], *)
+  (*       None ); *)
+  (*   ] *)
+  (* in *)
   match
     opam |> OpamFile.OPAM.depends
     |> OpamFormula.exists (fun (name, _) ->
@@ -258,9 +258,9 @@ let remap_topkg_install ~cross opam =
       let target_install =
         opam |> OpamFile.OPAM.install |> remap_install ~name ~cross
       in
-      let target_remove =
-        opam |> OpamFile.OPAM.remove |> remap_remove ~name ~cross
-      in
+      (* let target_remove = *)
+      (*   opam |> OpamFile.OPAM.remove |> remap_remove ~name ~cross *)
+      (* in *)
       let extra_depends =
         filtered_formula_of_package ~name:"opam-installer" ~version:"2.0.0"
           ~var_constraint:"build" ()
@@ -270,7 +270,7 @@ let remap_topkg_install ~cross opam =
         opam
         |> OpamFile.OPAM.with_build target_build
         |> OpamFile.OPAM.with_install target_install
-        |> OpamFile.OPAM.with_remove target_remove
+        (* |> OpamFile.OPAM.with_remove target_remove *)
         |> OpamFile.OPAM.with_depends
              (OpamFormula.And (depends_list, extra_depends))
       in
