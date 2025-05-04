@@ -8,7 +8,7 @@ install: [
 ]
 extra-files: [
   [ "build.sh" "sha256=39c98ff532a6dc055455f13cb9fad9904e9bf93bf76de82b339fd2fdc85bfe34"]
-  [ "install.sh" "sha256=681ce07f0bb1dee9ea261e59d5915666143a6623300ecb58559865166e26f8dd" ]
+  [ "install.sh" "sha256=b843d917e5daa828d647b2d124f5cbc6b252b67234b35a30939d8bcf18ae2eee" ]
 ]
 synopsis:
   "Virtual package specifying ocaml-cross zig wrapper utilities configuration"
