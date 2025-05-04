@@ -7,8 +7,8 @@ by configuring with --disable-naked-pointers. The shared memory
 parallelism added in OCaml 5.00.0 requires this mode."""
 maintainer: "https://github.com/ocaml/opam-repository/issues"
 depends: [
-  "base-domains-x86_64_al2023-x86_64_al2023" |
-  "ocaml-option-nnp-x86_64_al2023-x86_64_al2023" |
-  "ocaml-variants-x86_64_al2023-x86_64_al2023"
+  "base-domains-x86_64_al2023" |
+  "ocaml-option-nnp-x86_64_al2023" |
+  "ocaml-variants-x86_64_al2023"
     {= "4.06.1+no-naked-pointers+flambda"}
 ]
