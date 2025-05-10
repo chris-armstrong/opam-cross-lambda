@@ -67,7 +67,6 @@ build: [
     "-t" "x86_64-linux-gnu" # ocaml target triple 
     "-j" "%{jobs}%" 
     "-z" "%{conf-zig-wrapper-cross-x86_64-al2023:zig_path}%"
-    "-f" "%{flexdll:share}%"
     "-v" "5.3"
   ]
 ]
