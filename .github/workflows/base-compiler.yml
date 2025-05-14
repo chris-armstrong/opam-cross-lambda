@@ -9,7 +9,7 @@ on:
 permissions: read-all
 
 jobs:
-  aarch64-al2023_5_3:
+  aarch64_al2023_5_3:
     strategy:
       fail-fast: false
       matrix:
@@ -34,7 +34,7 @@ jobs:
       - name: add repository
         run: opam repo add cross .
       - name: configure and install zig wrapper
-        run: opam install conf-zig-wrapper-cross-aarch64-al2023
+        run: opam install conf-zig-wrapper-cross-aarch64_al2023
         env:
           ZIG_PATH: zig
       - name: validate zig works
@@ -44,18 +44,18 @@ jobs:
           eval $(opam env)
           { echo "#include <stdio.h>"; echo "int main() { return 0; }"; } > test.c
           export PATH=$PATH:$OPAM_SWITCH_PREFIX/bin
-          aarch64-al2023-target-cc -o test test.c
+          aarch64_al2023-target-cc -o test test.c
         env:
           ZIG_GLOBAL_CACHE_DIR: /tmp/zig-cache
           ZIG_LOCAL_CACHE_DIR: /tmp/zig-cache-local
       - name: install aarch64 compiler
-        run: opam install ocaml-cross-aarch64-al2023 --verbose
+        run: opam install ocaml-aarch64_al2023 --verbose
         env:
           ZIG_GLOBAL_CACHE_DIR: /tmp/zig-cache
           ZIG_LOCAL_CACHE_DIR: /tmp/zig-cache-local
           
 
-  x86_64-al2023_5_3:
+  x86_64_al2023_5_3:
     strategy:
       fail-fast: false
       matrix:
@@ -80,7 +80,7 @@ jobs:
       - name: add repository
         run: opam repo add cross .
       - name: configure and install zig wrapper
-        run: opam install conf-zig-wrapper-cross-x86_64-al2023
+        run: opam install conf-zig-wrapper-cross-x86_64_al2023
         env:
           ZIG_PATH: zig
           
@@ -91,12 +91,12 @@ jobs:
           eval $(opam env)
           { echo "#include <stdio.h>"; echo "int main() { return 0; }"; } > test.c
           export PATH=$PATH:$OPAM_SWITCH_PREFIX/bin
-          x86_64-al2023-target-cc -o test test.c
+          x86_64_al2023-target-cc -o test test.c
         env:
           ZIG_GLOBAL_CACHE_DIR: /tmp/zig-cache
           ZIG_LOCAL_CACHE_DIR: /tmp/zig-cache-local
       - name: install x86_64 compiler
-        run: opam install ocaml-cross-x86_64-al2023 --verbose 
+        run: opam install ocaml-x86_64_al2023 --verbose 
         env:
           ZIG_GLOBAL_CACHE_DIR: /tmp/zig-cache
           ZIG_LOCAL_CACHE_DIR: /tmp/zig-cache-local

@@ -1,0 +1,20 @@
+(lang dune 3.16)
+
+(package
+ (name test-piaf)
+ (allow_empty)
+ (synopsis "test piaffmt library cross")
+ (description "validate cross-compiler for piaf library")
+ (authors "Chris Armstrong")
+ (maintainers "Chris Armstrong <oss@chrisarmstrong.dev>")
+ (homepage https://github.com/chris-armstrong/opam-cross-lambda)
+ (bug_reports https://github.com/chris-armstrong/opam-cross-lambda/issues)
+ (source
+  (github chris-armstrong/opam-cross-lambda))
+ (license AFGPL)
+ (depends
+  (dune
+   (>= "3.4"))
+  (ocaml
+   (>= "4.14"))
+  piaf-cross-x86_64_al2023))

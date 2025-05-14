@@ -1,0 +1,86 @@
+diff --git a/lib/uring/include/discover.ml b/lib/uring/discover/discover.ml
+similarity index 100%
+rename from lib/uring/include/discover.ml
+rename to lib/uring/discover/discover.ml
+diff --git a/lib/uring/discover/dune b/lib/uring/discover/dune
+new file mode 100644
+index 00000000..f8862bd9
+--- /dev/null
++++ b/lib/uring/discover/dune
+@@ -0,0 +1,8 @@
++(copy_files %{project_root}/vendor/liburing/src/include/liburing.h)
++
++(copy_files %{project_root}/vendor/liburing/src/include/liburing/*.h)
++
++(executable
++ (name discover)
++ (modules discover)
++ (libraries dune-configurator))
+diff --git a/lib/uring/dune b/lib/uring/dune
+index f9112db1..fdd80bb6 100644
+--- a/lib/uring/dune
++++ b/lib/uring/dune
+@@ -31,7 +31,7 @@
+   include/liburing/barrier.h
+   include/liburing/compat.h)
+  (action
+-  (run ./include/discover.exe)))
++  (run ./discover/discover.exe)))
+ 
+ (rule
+  (deps
+@@ -50,7 +50,7 @@
+     (chdir
+      %{project_root}/vendor/liburing
+      (progn
+-      (run ./configure)
++      (bash "./configure \"--cc=%{cc} -lc\"")
+       (setenv
+        CFLAGS
+        "%{ocaml-config:ocamlc_cflags}"
+diff --git a/lib/uring/include/dune b/lib/uring/include/dune
+index f8862bd9..2039ff8d 100644
+--- a/lib/uring/include/dune
++++ b/lib/uring/include/dune
+@@ -1,8 +1,5 @@
++
+ (copy_files %{project_root}/vendor/liburing/src/include/liburing.h)
+ 
+ (copy_files %{project_root}/vendor/liburing/src/include/liburing/*.h)
+ 
+-(executable
+- (name discover)
+- (modules discover)
+- (libraries dune-configurator))
+diff --git a/vendor/liburing/src/Makefile b/vendor/liburing/src/Makefile
+index 6f8204ff..facb9f5d 100644
+--- a/vendor/liburing/src/Makefile
++++ b/vendor/liburing/src/Makefile
+@@ -51,15 +51,15 @@ ifeq ($(CONFIG_NOLIBC),y)
+ endif
+ 
+ override CPPFLAGS += -MT "$@" -MMD -MP -MF "$@.d"
+-liburing_objs := $(patsubst %.c,%.ol,$(liburing_srcs))
+-liburing_sobjs := $(patsubst %.c,%.os,$(liburing_srcs))
+-liburing_ffi_objs := ffi.ol
+-liburing_ffi_sobjs := ffi.os
++liburing_objs := $(patsubst %.c,%.ol.o,$(liburing_srcs))
++liburing_sobjs := $(patsubst %.c,%.os.o,$(liburing_srcs))
++liburing_ffi_objs := ffi.ol.o
++liburing_ffi_sobjs := ffi.os.o
+ 
+-%.os: %.c
++%.os.o: %.c
+ 	$(QUIET_CC)$(CC) $(CPPFLAGS) $(SO_CFLAGS) -c -o $@ $<
+ 
+-%.ol: %.c
++%.ol.o: %.c
+ 	$(QUIET_CC)$(CC) $(CPPFLAGS) $(L_CFLAGS) -c -o $@ $<
+ 
+ # Include compiler generated dependency files.
+@@ -109,4 +109,4 @@ clean:
+ 
+ 	@# When cleaning, we don't include ../config-host.mak,
+ 	@# so the nolibc objects are always skipped, clean them up!
+-	@rm -f nolibc.ol nolibc.os
++	@rm -f nolibc.ol.o nolibc.os.o

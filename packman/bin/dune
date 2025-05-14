@@ -1,3 +1,16 @@
 (executable
  (name packman)
- (libraries opam-solver opam-format))
+ (libraries
+  opam-format
+  opam-state
+  opam-solver
+  containers
+  cmdliner
+  opam-0install
+  fileutils
+  fmt
+  fmt.tty
+  fmt.cli
+  logs
+  logs.cli
+  logs.fmt))
