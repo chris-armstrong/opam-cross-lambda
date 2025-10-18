@@ -24,9 +24,9 @@ jobs:
       - name: Checkout tree
         uses: actions/checkout@v4
       - name: install zig
-        uses: mlugg/setup-zig@v1
+        uses: mlugg/setup-zig@v2
         with:
-          version: master
+          version: 0.15.2
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
@@ -70,9 +70,9 @@ jobs:
       - name: Checkout tree
         uses: actions/checkout@v4
       - name: install zig
-        uses: mlugg/setup-zig@v1
+        uses: mlugg/setup-zig@v2
         with:
-          version: master
+          version: 0.15.2
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
