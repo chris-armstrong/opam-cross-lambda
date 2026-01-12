@@ -18,9 +18,12 @@
    (>= "3.4"))
   (ocaml
    (>= "4.14"))
-  opam-format
-  opam-state
-  opam-solver
+  (opam-format
+   (< "2.5.0"))
+  (opam-state
+   (< "2.5.0"))
+  (opam-solver
+   (< "2.5.0"))
   containers
   cmdliner
   opam-0install
