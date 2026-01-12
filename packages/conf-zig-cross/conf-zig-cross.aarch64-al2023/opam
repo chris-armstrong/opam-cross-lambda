@@ -1,0 +1,8 @@
+opam-version: "2.0"
+maintainer: "hello@chrisarmstrong.dev"
+build: [
+  ["sh" "-c" "echo 'ocaml_triple: \"aarch64-linux-gnu\"' >> conf-zig-cross.config"]
+  ["sh" "-c" "echo 'zig_triple: \"aarch64-linux-gnu.2.34\"' >> conf-zig-cross.config"]
+]
+synopsis:
+  "Configuration package to target ARM64 Amazon Linux from zig-cross"
